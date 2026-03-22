@@ -9,6 +9,7 @@ import BannerStrip from '@/components/store/BannerStrip'
 import ReviewsSection from '@/components/store/ReviewsSection'
 import TrustBar from '@/components/store/TrustBar'
 import Footer from '@/components/store/Footer'
+import { checkoutEnabled } from '@/lib/config/store'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,7 +38,7 @@ export default async function HomePage() {
               </a>
             </div>
             <Suspense fallback={<ProductGridSkeleton />}>
-              <ProductGrid products={featuredProducts} />
+              <ProductGrid products={featuredProducts} checkoutEnabled={checkoutEnabled} />
             </Suspense>
           </div>
         </section>

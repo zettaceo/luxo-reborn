@@ -31,7 +31,11 @@ function maskExpiry(v: string) {
 // ─── Step types ──────────────────────────────────────────
 type Step = 'address' | 'shipping' | 'payment' | 'pix'
 
-export default function CheckoutClient() {
+interface Props {
+  checkoutEnabled: boolean
+}
+
+export default function CheckoutClient({ checkoutEnabled }: Props) {
   const router = useRouter()
   const { items, total, clearCart } = useCart()
   const cartTotal = total()
@@ -74,14 +78,16 @@ export default function CheckoutClient() {
 
   // Redirect if cart empty
   useEffect(() => {
+    if (!checkoutEnabled) return
     if (items.length === 0 && step !== 'pix') router.push('/')
-  }, [items, step, router])
+  }, [items, step, router, checkoutEnabled])
 
   useEffect(() => {
+    if (!checkoutEnabled) return
     if (items.length === 0 || checkoutTrackedRef.current) return
     checkoutTrackedRef.current = true
     trackBeginCheckout(items, cartTotal)
-  }, [items, cartTotal])
+  }, [items, cartTotal, checkoutEnabled])
 
   // ── CEP auto-fill ──
   async function handleZipBlur() {
@@ -139,6 +145,10 @@ export default function CheckoutClient() {
 
   // ── Process payment ──
   async function handlePayment() {
+    if (!checkoutEnabled) {
+      toast.error('Checkout temporariamente indisponível.')
+      return
+    }
     if (!selectedShipping) { toast.error('Selecione o frete'); return }
     setLoading(true)
     try {
@@ -237,6 +247,21 @@ export default function CheckoutClient() {
   // ─────────────────────────────────────────────────────────
   // RENDER
   // ─────────────────────────────────────────────────────────
+
+  if (!checkoutEnabled) {
+    return (
+      <div className="max-w-xl mx-auto bg-white border border-amber-200 rounded-3xl p-7 text-center">
+        <span className="text-5xl block mb-3">🗂️</span>
+        <h2 className="font-display text-2xl font-bold text-charcoal mb-2">Loja em modo catálogo</h2>
+        <p className="text-sm text-muted mb-6">
+          O checkout será liberado assim que os pagamentos do Mercado Pago forem ativados.
+        </p>
+        <button onClick={() => router.push('/produtos')} className="btn-primary">
+          Ver produtos
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="grid lg:grid-cols-[1fr_380px] gap-8 items-start">

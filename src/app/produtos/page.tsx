@@ -5,6 +5,7 @@ import CartDrawer from '@/components/store/CartDrawer'
 import { Footer } from '@/components/store/BannerStrip'
 import CatalogClient from './CatalogClient'
 import { db } from '@/lib/db'
+import { checkoutEnabled } from '@/lib/config/store'
 
 export const metadata: Metadata = {
   title: 'Produtos',
@@ -21,7 +22,7 @@ export default async function ProdutosPage() {
       <CartDrawer />
       <main className="min-h-screen bg-cream">
         <Suspense fallback={<CatalogSkeleton />}>
-          <CatalogClient categories={categories} />
+          <CatalogClient categories={categories} checkoutEnabled={checkoutEnabled} />
         </Suspense>
       </main>
       <Footer />

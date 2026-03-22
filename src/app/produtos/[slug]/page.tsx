@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import type { Metadata } from 'next'
 import { db } from '@/lib/db'
+import { checkoutEnabled } from '@/lib/config/store'
 import Header from '@/components/store/Header'
 import CartDrawer from '@/components/store/CartDrawer'
 import { Footer } from '@/components/store/BannerStrip'
@@ -40,7 +41,7 @@ export default async function ProductPage({ params }: Props) {
       <Header />
       <CartDrawer />
       <main className="min-h-screen bg-cream">
-        <ProductPageClient product={product} />
+        <ProductPageClient product={product} checkoutEnabled={checkoutEnabled} />
       </main>
       <Footer />
     </>

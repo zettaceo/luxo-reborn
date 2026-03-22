@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import Header from '@/components/store/Header'
 import CartDrawer from '@/components/store/CartDrawer'
 import CheckoutClient from './CheckoutClient'
+import { checkoutEnabled } from '@/lib/config/store'
 
 export const metadata: Metadata = {
   title: 'Finalizar Pedido',
@@ -31,7 +32,7 @@ export default function CheckoutPage() {
             ))}
           </div>
 
-          <CheckoutClient />
+          <CheckoutClient checkoutEnabled={checkoutEnabled} />
         </div>
       </main>
     </>

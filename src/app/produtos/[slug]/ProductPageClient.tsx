@@ -13,9 +13,10 @@ import type { Product, Review } from '@/types'
 
 interface Props {
   product: Product & { reviews?: Review[] }
+  checkoutEnabled: boolean
 }
 
-export default function ProductPageClient({ product }: Props) {
+export default function ProductPageClient({ product, checkoutEnabled }: Props) {
   const router = useRouter()
   const { addItem } = useCart()
   const trackedProductRef = useRef<string | null>(null)
@@ -44,6 +45,10 @@ export default function ProductPageClient({ product }: Props) {
   }, [product])
 
   function handleAddToCart() {
+    if (!checkoutEnabled) {
+      toast('Loja em modo catálogo. Checkout em breve.')
+      return
+    }
     setAddingCart(true)
     addItem(product, qty)
     trackAddToCart(product, qty)
@@ -52,6 +57,10 @@ export default function ProductPageClient({ product }: Props) {
   }
 
   function handleBuyNow() {
+    if (!checkoutEnabled) {
+      toast('Loja em modo catálogo. Checkout em breve.')
+      return
+    }
     addItem(product, qty)
     trackAddToCart(product, qty)
     router.push('/checkout')
@@ -213,6 +222,11 @@ export default function ProductPageClient({ product }: Props) {
           {/* Quantity + Add to cart */}
           {product.stock > 0 && (
             <div className="flex flex-col gap-3">
+              {!checkoutEnabled && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-800">
+                  Checkout temporariamente indisponível enquanto finalizamos o setup de pagamentos.
+                </div>
+              )}
               <div>
                 <label className="label">Quantidade</label>
                 <div className="flex items-center gap-4">
@@ -234,17 +248,18 @@ export default function ProductPageClient({ product }: Props) {
 
               <button
                 onClick={handleAddToCart}
-                disabled={addingCart}
+                disabled={addingCart || !checkoutEnabled}
                 className={`btn-primary w-full py-4 text-base ${addingCart ? 'bg-green-500 from-green-500 to-emerald-400' : ''}`}
               >
-                {addingCart ? '✓ Adicionado ao carrinho!' : '🛒 Adicionar ao Carrinho'}
+                {!checkoutEnabled ? '⏳ Compras em breve' : addingCart ? '✓ Adicionado ao carrinho!' : '🛒 Adicionar ao Carrinho'}
               </button>
 
               <button
                 onClick={handleBuyNow}
-                className="btn-outline w-full py-4 text-base"
+                disabled={!checkoutEnabled}
+                className="btn-outline w-full py-4 text-base disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                ⚡ Comprar agora
+                {checkoutEnabled ? '⚡ Comprar agora' : '🗂️ Modo catálogo'}
               </button>
 
               <a

@@ -11,12 +11,17 @@ interface PaymentItem {
   quantity: number
 }
 
-const client = new MercadoPagoConfig({
-  accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
-  options: { timeout: 5000 },
-})
+function getPaymentClient() {
+  const accessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
+  if (!accessToken) throw new Error('MERCADOPAGO_ACCESS_TOKEN is required.')
 
-const payment = new Payment(client)
+  const client = new MercadoPagoConfig({
+    accessToken,
+    options: { timeout: 5000 },
+  })
+
+  return new Payment(client)
+}
 
 // ── CRIAR PAGAMENTO PIX ──────────────────────
 export async function createPixPayment(order: {
@@ -28,6 +33,7 @@ export async function createPixPayment(order: {
   customerCpf: string
   items: PaymentItem[]
 }) {
+  const payment = getPaymentClient()
   const result = await payment.create({
     body: {
       transaction_amount: order.total,
@@ -74,6 +80,7 @@ export async function createCardPayment(order: {
   customerCpf: string
   items: PaymentItem[]
 }) {
+  const payment = getPaymentClient()
   const result = await payment.create({
     body: {
       transaction_amount: order.total,
@@ -105,6 +112,7 @@ export async function createCardPayment(order: {
 
 // ── VERIFICAR STATUS ─────────────────────────
 export async function getPaymentStatus(paymentId: string) {
+  const payment = getPaymentClient()
   const result = await payment.get({ id: paymentId })
   return {
     status: result.status,

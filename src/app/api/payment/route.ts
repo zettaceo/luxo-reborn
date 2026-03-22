@@ -40,6 +40,13 @@ function sanitizeText(value: unknown) {
 // POST /api/payment — cria pagamento e pedido
 export async function POST(req: NextRequest) {
   try {
+    if (!process.env.MERCADOPAGO_ACCESS_TOKEN || !process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY) {
+      return NextResponse.json(
+        { error: 'Checkout temporariamente indisponível. Loja em modo catálogo.' },
+        { status: 503 }
+      )
+    }
+
     const body = await req.json()
     const { order, payment_method, card_token, card_installments } = body
     const paymentMethod = sanitizeText(payment_method)

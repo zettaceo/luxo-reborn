@@ -8,6 +8,7 @@ import Link from 'next/link'
 
 export default function CartDrawer() {
   const { items, isOpen, openCart, closeCart, updateQuantity, removeItem, total } = useCart()
+  const checkoutEnabled = Boolean(process.env.NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY)
 
   return (
     <>
@@ -77,16 +78,33 @@ export default function CartDrawer() {
                 {formatCurrency(total())}
               </span>
             </div>
-            <Link
-              href="/checkout"
-              onClick={closeCart}
-              className="btn-primary w-full text-base py-4"
-            >
-              💳 Finalizar Pedido
-            </Link>
-            <p className="text-center text-xs text-muted mt-3">
-              🔒 Pix ou cartão · Pagamento 100% seguro
-            </p>
+            {checkoutEnabled ? (
+              <>
+                <Link
+                  href="/checkout"
+                  onClick={closeCart}
+                  className="btn-primary w-full text-base py-4"
+                >
+                  💳 Finalizar Pedido
+                </Link>
+                <p className="text-center text-xs text-muted mt-3">
+                  🔒 Pix ou cartão · Pagamento 100% seguro
+                </p>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  disabled
+                  className="btn-primary w-full text-base py-4 opacity-60 cursor-not-allowed"
+                >
+                  🗂️ Modo catálogo ativo
+                </button>
+                <p className="text-center text-xs text-muted mt-3">
+                  Checkout será liberado em breve.
+                </p>
+              </>
+            )}
           </div>
         )}
       </aside>

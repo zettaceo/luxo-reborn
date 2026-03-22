@@ -9,7 +9,12 @@ import { trackAddToCart, trackEvent } from '@/lib/analytics'
 import { formatCurrency } from '@/lib/utils'
 import type { Product } from '@/types'
 
-export default function ProductGrid({ products }: { products: Product[] }) {
+interface ProductGridProps {
+  products: Product[]
+  checkoutEnabled?: boolean
+}
+
+export default function ProductGrid({ products, checkoutEnabled = true }: ProductGridProps) {
   if (!products?.length) {
     return (
       <div className="text-center py-20 text-muted">
@@ -22,13 +27,18 @@ export default function ProductGrid({ products }: { products: Product[] }) {
   return (
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
       {products.map(product => (
-        <ProductCard key={product.id} product={product} />
+        <ProductCard key={product.id} product={product} checkoutEnabled={checkoutEnabled} />
       ))}
     </div>
   )
 }
 
-export function ProductCard({ product }: { product: Product }) {
+interface ProductCardProps {
+  product: Product
+  checkoutEnabled?: boolean
+}
+
+export function ProductCard({ product, checkoutEnabled = true }: ProductCardProps) {
   const { addItem } = useCart()
   const [wished, setWished] = useState(false)
   const [adding, setAdding] = useState(false)
@@ -41,6 +51,10 @@ export function ProductCard({ product }: { product: Product }) {
 
   async function handleAddToCart(e: React.MouseEvent) {
     e.preventDefault()
+    if (!checkoutEnabled) {
+      toast('Loja em modo catálogo. Checkout em breve.')
+      return
+    }
     if (product.stock <= 0) return
     setAdding(true)
     addItem(product)
@@ -134,7 +148,7 @@ export function ProductCard({ product }: { product: Product }) {
 
             <button
               onClick={handleAddToCart}
-              disabled={product.stock <= 0 || adding}
+              disabled={product.stock <= 0 || adding || !checkoutEnabled}
               className={`w-10 h-10 rounded-full flex items-center justify-center text-white text-base transition-all shrink-0 ${
                 adding
                   ? 'bg-gradient-to-br from-green-500 to-emerald-400 scale-95'
@@ -142,13 +156,13 @@ export function ProductCard({ product }: { product: Product }) {
               } disabled:opacity-40 disabled:cursor-not-allowed`}
               aria-label="Adicionar ao carrinho"
             >
-              {adding ? '✓' : '+'}
+              {!checkoutEnabled ? '⏳' : adding ? '✓' : '+'}
             </button>
           </div>
 
           {/* Pix price hint */}
           <p className="text-[11px] text-muted mt-1.5">
-            💳 no Pix ou em até 12x no cartão
+            {checkoutEnabled ? '💳 no Pix ou em até 12x no cartão' : '🗂️ Modo catálogo ativo'}
           </p>
         </div>
       </article>

@@ -7,6 +7,7 @@ import type { Category, Product } from '@/types'
 
 interface Props {
   categories: Category[]
+  checkoutEnabled: boolean
 }
 
 const SORT_OPTIONS = [
@@ -20,7 +21,7 @@ const BADGE_OPTIONS = ['Novo', 'Top', 'Popular', 'Promoção']
 
 const PER_PAGE = 12
 
-export default function CatalogClient({ categories }: Props) {
+export default function CatalogClient({ categories, checkoutEnabled }: Props) {
   const router       = useRouter()
   const searchParams = useSearchParams()
 
@@ -122,6 +123,13 @@ export default function CatalogClient({ categories }: Props) {
         </button>
       </div>
 
+      {!checkoutEnabled && (
+        <div className="mb-6 bg-amber-50 border border-amber-200 rounded-2xl p-4 text-sm text-amber-800">
+          <p className="font-semibold">Loja em modo catálogo</p>
+          <p>O checkout será liberado quando os pagamentos forem ativados.</p>
+        </div>
+      )}
+
       <div className="flex gap-8">
         {/* Sidebar */}
         <aside className={`w-56 shrink-0 ${sidebarOpen ? 'block' : 'hidden'} sm:block`}>
@@ -195,7 +203,7 @@ export default function CatalogClient({ categories }: Props) {
           ) : (
             <>
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
-                {products.map(p => <ProductCard key={p.id} product={p} />)}
+                {products.map(p => <ProductCard key={p.id} product={p} checkoutEnabled={checkoutEnabled} />)}
               </div>
 
               {totalPages > 1 && (
