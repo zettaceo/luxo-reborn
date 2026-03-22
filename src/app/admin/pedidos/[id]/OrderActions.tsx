@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
+import { WhatsAppIcon } from '@/components/icons/SocialIcons'
 
 interface Order {
   id: string
@@ -92,8 +93,9 @@ export default function OrderActions({ order }: { order: Order }) {
         <button onClick={handleSave} disabled={saving} className="btn-primary">
           {saving ? '⏳ Salvando...' : '💾 Salvar'}
         </button>
-        <button onClick={handleWhatsAppNotify} className="btn-secondary text-sm">
-          💬 Notificar no WhatsApp
+        <button onClick={handleWhatsAppNotify} className="btn-secondary text-sm inline-flex items-center gap-2">
+          <WhatsAppIcon className="w-4 h-4" />
+          Notificar no WhatsApp
         </button>
       </div>
     </div>

@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Header from '@/components/store/Header'
 import CartDrawer from '@/components/store/CartDrawer'
 import { Footer } from '@/components/store/BannerStrip'
+import { WhatsAppIcon } from '@/components/icons/SocialIcons'
 import SuccessTracking from './SuccessTracking'
 
 export const metadata: Metadata = { title: 'Pedido Confirmado!' }
@@ -53,8 +54,14 @@ export default function SuccessPage({ searchParams }: Props) {
 
           <div className="flex flex-col gap-3">
             <Link href="/" className="btn-primary w-full py-4">🛍️ Continuar comprando</Link>
-            <a href="https://wa.me/5511965277902" target="_blank" rel="noopener noreferrer" className="btn-secondary w-full py-4">
-              💬 Falar no WhatsApp
+            <a
+              href="https://wa.me/5511965277902"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="btn-secondary w-full py-4 inline-flex items-center justify-center gap-2"
+            >
+              <WhatsAppIcon className="w-5 h-5" />
+              Falar no WhatsApp
             </a>
           </div>
         </div>

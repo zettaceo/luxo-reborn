@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { InstagramIcon, WhatsAppIcon } from '@/components/icons/SocialIcons'
 
 export function BannerStrip() {
   return (
@@ -124,18 +125,19 @@ export function Footer() {
           </p>
           <div className="flex gap-2">
             {[
-              { label: '📸', href: 'https://www.instagram.com/luxo_reborn' },
-              { label: '💬', href: 'https://wa.me/5511965277902' },
-              { label: '🎵', href: '#' },
-            ].map(({ label, href }) => (
+              { key: 'instagram', href: 'https://www.instagram.com/luxo_reborn' },
+              { key: 'whatsapp', href: 'https://wa.me/5511965277902' },
+            ].map(({ key, href }) => (
               <a
-                key={label}
+                key={key}
                 href={href}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-full bg-white/8 hover:bg-rose flex items-center justify-center text-base transition-colors"
               >
-                {label}
+                {key === 'instagram'
+                  ? <InstagramIcon className="w-4 h-4" />
+                  : <WhatsAppIcon className="w-4 h-4" />}
               </a>
             ))}
           </div>
@@ -165,8 +167,8 @@ export function Footer() {
           {
             title: 'Contato',
             links: [
-              { label: '📱 WhatsApp',  href: 'https://wa.me/5511965277902' },
-              { label: '📸 Instagram', href: 'https://www.instagram.com/luxo_reborn' },
+              { label: 'WhatsApp',  href: 'https://wa.me/5511965277902' },
+              { label: 'Instagram', href: 'https://www.instagram.com/luxo_reborn' },
             ],
           },
         ].map(({ title, links }) => (
@@ -175,7 +177,9 @@ export function Footer() {
             <ul className="space-y-2.5">
               {links.map(({ label, href }) => (
                 <li key={label}>
-                  <a href={href} className="text-xs text-white/50 hover:text-rose transition-colors">
+                  <a href={href} className="text-xs text-white/50 hover:text-rose transition-colors inline-flex items-center gap-1.5">
+                    {href.includes('instagram.com') && <InstagramIcon className="w-3.5 h-3.5" />}
+                    {href.includes('wa.me') && <WhatsAppIcon className="w-3.5 h-3.5" />}
                     {label}
                   </a>
                 </li>

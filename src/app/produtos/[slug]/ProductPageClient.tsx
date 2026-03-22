@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useCart } from '@/hooks/useCart'
+import { WhatsAppIcon } from '@/components/icons/SocialIcons'
 import { trackAddToCart, trackViewItem } from '@/lib/analytics'
 import { formatCurrency } from '@/lib/utils'
 import type { Product, Review } from '@/types'
@@ -250,9 +251,10 @@ export default function ProductPageClient({ product }: Props) {
                 href="https://wa.me/5511965277902"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="btn-secondary w-full py-4 text-base text-center"
+                className="btn-secondary w-full py-4 text-base text-center inline-flex items-center justify-center gap-2"
               >
-                💬 Tirar dúvidas no WhatsApp
+                <WhatsAppIcon className="w-5 h-5" />
+                Tirar dúvidas no WhatsApp
               </a>
             </div>
           )}

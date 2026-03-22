@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/db'
 import { formatCurrency, formatDateTime, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/utils'
+import { WhatsAppIcon } from '@/components/icons/SocialIcons'
 import type { Metadata } from 'next'
 import OrderActions from './OrderActions'
 
@@ -78,9 +79,10 @@ export default async function AdminOrderDetailPage({ params }: Props) {
           href={`https://wa.me/55${order.customer_phone?.replace(/\D/g,'')}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="btn-secondary text-sm"
+          className="btn-secondary text-sm inline-flex items-center gap-2"
         >
-          💬 WhatsApp cliente
+          <WhatsAppIcon className="w-4 h-4" />
+          WhatsApp cliente
         </a>
       </div>
 

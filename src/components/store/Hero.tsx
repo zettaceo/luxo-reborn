@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { WhatsAppIcon } from '@/components/icons/SocialIcons'
 
 export default function Hero() {
   return (
@@ -38,9 +39,10 @@ export default function Hero() {
               href="https://wa.me/5511965277902"
               target="_blank"
               rel="noopener noreferrer"
-              className="btn-secondary text-base px-8 py-4"
+              className="btn-secondary text-base px-8 py-4 inline-flex items-center gap-2"
             >
-              📱 Falar no WhatsApp
+              <WhatsAppIcon className="w-5 h-5" />
+              Falar no WhatsApp
             </a>
           </div>
 
