@@ -24,6 +24,7 @@ export async function POST(req: NextRequest) {
       address_state:        order.address_state,
       subtotal:             order.subtotal,
       shipping_cost:        order.shipping_cost,
+      shipping_service:     order.shipping_service ?? null,
       total:                order.total,
       payment_method,
       payment_status: 'pending',

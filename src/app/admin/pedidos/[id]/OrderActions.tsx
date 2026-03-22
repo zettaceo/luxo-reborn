@@ -34,11 +34,12 @@ export default function OrderActions({ order }: { order: Order }) {
   async function handleSave() {
     setSaving(true)
     try {
-      await fetch(`/api/admin/orders/${order.id}`, {
+      const res = await fetch(`/api/admin/orders/${order.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status, tracking_code: trackingCode, shipping_service: shippingService }),
       })
+      if (!res.ok) throw new Error('Falha ao atualizar pedido')
       toast.success('Pedido atualizado! ✅')
       router.refresh()
     } catch {

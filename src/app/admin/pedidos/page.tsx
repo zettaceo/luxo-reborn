@@ -2,6 +2,7 @@ import { supabaseAdmin } from '@/lib/db'
 import { formatCurrency, formatDateTime, ORDER_STATUS_LABELS } from '@/lib/utils'
 import Link from 'next/link'
 import type { Metadata } from 'next'
+import OrderQuickActions from './OrderQuickActions'
 
 export const metadata: Metadata = { title: 'Pedidos' }
 export const revalidate = 0
@@ -28,7 +29,7 @@ const STATUS_TABS = [
   { value: 'cancelled', label: '❌ Cancelado' },
 ]
 
-async function getOrders(status?: string) {
+async function getOrders(status?: string, queryText?: string) {
   let query = supabaseAdmin
     .from('orders')
     .select('id, order_number, customer_name, customer_email, total, status, payment_status, payment_method, created_at')
@@ -36,17 +37,23 @@ async function getOrders(status?: string) {
     .limit(50)
 
   if (status) query = query.eq('status', status)
+  if (queryText?.trim()) {
+    const safeQuery = queryText.trim().replace(/,/g, ' ').replace(/[%_]/g, '')
+    query = query.or(`order_number.ilike.%${safeQuery}%,customer_name.ilike.%${safeQuery}%,customer_email.ilike.%${safeQuery}%`)
+  }
+
   const { data } = await query
   return (data ?? []) as OrderRow[]
 }
 
 interface Props {
-  searchParams: { status?: string }
+  searchParams: { status?: string; q?: string }
 }
 
 export default async function AdminOrdersPage({ searchParams }: Props) {
   const activeStatus = searchParams.status ?? ''
-  const orders = await getOrders(activeStatus || undefined)
+  const search = searchParams.q ?? ''
+  const orders = await getOrders(activeStatus || undefined, search)
 
   return (
     <div className="p-6 md:p-8 mt-14 md:mt-0">
@@ -54,6 +61,23 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
         <h1 className="font-display text-3xl font-bold text-charcoal">📦 Pedidos</h1>
         <p className="text-muted text-sm mt-1">{orders.length} pedido{orders.length !== 1 ? 's' : ''}</p>
       </div>
+
+      <form method="GET" className="mb-6 flex flex-col sm:flex-row gap-3">
+        {activeStatus && <input type="hidden" name="status" value={activeStatus} />}
+        <input
+          type="text"
+          name="q"
+          defaultValue={search}
+          placeholder="Buscar por número, cliente ou e-mail"
+          className="input flex-1"
+        />
+        <button type="submit" className="btn-primary whitespace-nowrap">🔎 Buscar</button>
+        {(search || activeStatus) && (
+          <Link href="/admin/pedidos" className="btn-outline whitespace-nowrap text-center">
+            Limpar filtros
+          </Link>
+        )}
+      </form>
 
       <div className="flex gap-2 overflow-x-auto pb-2 mb-6">
         {STATUS_TABS.map(tab => (
@@ -88,7 +112,7 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                   <th className="text-center px-5 py-3 text-xs font-bold text-muted uppercase tracking-wide">Status</th>
                   <th className="text-center px-5 py-3 text-xs font-bold text-muted uppercase tracking-wide hidden sm:table-cell">Pagamento</th>
                   <th className="text-right px-5 py-3 text-xs font-bold text-muted uppercase tracking-wide">Total</th>
-                  <th className="px-5 py-3" />
+                  <th className="text-right px-5 py-3 text-xs font-bold text-muted uppercase tracking-wide">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-rose-light">
@@ -120,9 +144,12 @@ export default async function AdminOrdersPage({ searchParams }: Props) {
                         <span className="text-sm font-bold text-charcoal">{formatCurrency(Number(order.total))}</span>
                       </td>
                       <td className="px-5 py-3.5 text-right">
-                        <Link href={`/admin/pedidos/${order.id}`} className="text-xs font-semibold text-rose-deep hover:underline">
-                          Ver →
-                        </Link>
+                        <div className="flex items-center justify-end gap-2">
+                          <OrderQuickActions orderId={order.id} orderStatus={order.status} />
+                          <Link href={`/admin/pedidos/${order.id}`} className="text-xs font-semibold text-rose-deep hover:underline">
+                            Ver →
+                          </Link>
+                        </div>
                       </td>
                     </tr>
                   )
