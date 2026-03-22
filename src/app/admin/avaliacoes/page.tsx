@@ -5,6 +5,7 @@ import ReviewActions from './ReviewActions'
 
 export const metadata: Metadata = { title: 'Avaliações' }
 export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
 interface ReviewRow {
   id: string
@@ -13,7 +14,7 @@ interface ReviewRow {
   comment?: string | null
   created_at: string
   is_approved: boolean
-  product?: { name: string } | null
+  product?: { name: string }[] | null
 }
 
 async function getReviews(): Promise<ReviewRow[]> {
@@ -81,12 +82,14 @@ export default async function AdminReviewsPage() {
 }
 
 function ReviewCard({ review }: { review: ReviewRow }) {
+  const productName = review.product?.[0]?.name
+
   return (
     <div className="mb-4">
       <div className="flex items-start justify-between gap-4 mb-2">
         <div>
           <p className="font-semibold text-charcoal text-sm">{review.customer_name}</p>
-          {review.product && <p className="text-xs text-muted">Produto: {review.product.name}</p>}
+          {productName && <p className="text-xs text-muted">Produto: {productName}</p>}
           <p className="text-xs text-muted">{formatDate(review.created_at)}</p>
         </div>
         <div className="flex gap-0.5 shrink-0">

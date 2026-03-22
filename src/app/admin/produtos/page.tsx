@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Produtos' }
 export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
 interface ProductRow {
   id: string
@@ -14,7 +15,7 @@ interface ProductRow {
   is_active: boolean
   is_featured: boolean
   badge?: string | null
-  category?: { name: string; emoji: string } | null
+  category?: { name: string; emoji: string }[] | null
   images?: { url: string; is_cover: boolean }[]
 }
 
@@ -62,6 +63,7 @@ export default async function AdminProductsPage() {
               <tbody className="divide-y divide-rose-light">
                 {products.map((p) => {
                   const cover = p.images?.find(i => i.is_cover) ?? p.images?.[0]
+                  const category = p.category?.[0]
                   return (
                     <tr key={p.id} className="hover:bg-rose-pale/30 transition-colors">
                       <td className="px-5 py-3">
@@ -82,7 +84,7 @@ export default async function AdminProductsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-3 hidden sm:table-cell">
-                        <span className="text-sm text-muted">{p.category?.emoji} {p.category?.name}</span>
+                        <span className="text-sm text-muted">{category?.emoji} {category?.name}</span>
                       </td>
                       <td className="px-5 py-3 text-right">
                         <span className="text-sm font-bold text-rose-deep">{formatCurrency(Number(p.price))}</span>
