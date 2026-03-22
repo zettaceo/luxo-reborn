@@ -106,7 +106,7 @@ async function getMarketingData(days: number) {
       purchaseMap.set(transactionId, event)
     }
   }
-  const purchaseEvents = [...purchaseMap.values()]
+  const purchaseEvents = Array.from(purchaseMap.values())
   const channelMap = new Map<string, { purchases: number; revenue: number }>()
   const campaignMap = new Map<string, { purchases: number; revenue: number }>()
 
@@ -129,12 +129,12 @@ async function getMarketingData(days: number) {
     campaignMap.set(campaign, campaignCurrent)
   }
 
-  const topChannels = [...channelMap.entries()]
+  const topChannels = Array.from(channelMap.entries())
     .map(([label, stats]) => ({ label, ...stats }))
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5)
 
-  const topCampaigns = [...campaignMap.entries()]
+  const topCampaigns = Array.from(campaignMap.entries())
     .map(([label, stats]) => ({ label, ...stats }))
     .sort((a, b) => b.revenue - a.revenue)
     .slice(0, 5)
@@ -146,7 +146,7 @@ async function getMarketingData(days: number) {
     topPagesMap.set(path, (topPagesMap.get(path) ?? 0) + 1)
   }
 
-  const topPages = [...topPagesMap.entries()]
+  const topPages = Array.from(topPagesMap.entries())
     .map(([label, views]) => ({ label, views }))
     .sort((a, b) => b.views - a.views)
     .slice(0, 5)
