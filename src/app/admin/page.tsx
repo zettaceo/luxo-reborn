@@ -130,11 +130,12 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div className="mt-6 grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
           { href: '/admin/produtos/novo',       icon: '➕', label: 'Novo produto' },
           { href: '/admin/pedidos?status=paid', icon: '📦', label: 'Embalar pedidos' },
           { href: '/admin/avaliacoes',          icon: '⭐', label: 'Aprovar avaliações' },
+          { href: '/admin/marketing',           icon: '📈', label: 'Ver funil' },
           { href: '/',                          icon: '🛍️', label: 'Ver loja' },
         ].map(({ href, icon, label }) => (
           <Link key={label} href={href} target={href === '/' ? '_blank' : undefined}

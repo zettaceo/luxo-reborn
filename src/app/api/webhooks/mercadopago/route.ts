@@ -6,6 +6,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getPaymentStatus, isValidWebhook } from '@/lib/mercadopago'
 import { db } from '@/lib/db'
+import { supabaseAdmin } from '@/lib/db'
 
 export async function POST(req: NextRequest) {
   try {
@@ -38,6 +39,36 @@ export async function POST(req: NextRequest) {
 
     // Atualiza o pedido no banco
     await db.orders.updatePaymentStatus(paymentId, status ?? 'pending', externalReference)
+
+    if (status === 'approved') {
+      try {
+        const { data: orderData } = await supabaseAdmin
+          .from('orders')
+          .select('order_number, total, payment_method, shipping_service')
+          .eq('id', externalReference)
+          .single()
+
+        if (orderData) {
+          await supabaseAdmin.from('analytics_events').insert({
+            event_name: 'purchase',
+            event_params: {
+              transaction_id: orderData.order_number,
+              value: Number(orderData.total),
+              currency: 'BRL',
+              payment_type: orderData.payment_method,
+              shipping_tier: orderData.shipping_service,
+              source: 'server_webhook',
+              medium: 'mercadopago',
+              campaign: '(not set)',
+            },
+            page_path: '/api/webhooks/mercadopago',
+            session_id: `server-${externalReference}`,
+          })
+        }
+      } catch {
+        // Não pode falhar webhook por causa do log de analytics.
+      }
+    }
 
     console.log(`✅ Webhook: Pedido ${externalReference} → ${status}`)
 

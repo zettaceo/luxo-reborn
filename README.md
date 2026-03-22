@@ -47,6 +47,7 @@ Abra `.env.local` e preencha:
 1. Crie um projeto em [supabase.com](https://supabase.com)
 2. Vá em **SQL Editor → New Query**
 3. Cole o conteúdo de `supabase/schema.sql` e execute
+4. Em seguida, execute também `supabase/analytics.sql` (painel de funil/conversão)
 
 ### 4. Configure o Storage
 
@@ -70,8 +71,20 @@ npm run dev
 npm run dev
 # Acesse: http://localhost:3000
 # Admin: http://localhost:3000/admin (senha no .env.local)
+# Marketing: http://localhost:3000/admin/marketing
 # Rastreio: http://localhost:3000/pedidos
 ```
+
+### ✅ Checklist de validação (pronto para uso)
+
+1. Abra `/admin/marketing` e confirme os cards de funil.
+2. Acesse um produto, adicione no carrinho e avance no checkout.
+3. Volte em `/admin/marketing` e valide aumento em:
+   - `view_item`
+   - `add_to_cart`
+   - `begin_checkout`
+4. Faça um pedido de teste e valide `purchase`.
+5. Abra `/pedidos` e consulte com e-mail da compra.
 
 ---
 
@@ -117,6 +130,10 @@ src/
 2. Acesse [vercel.com](https://vercel.com) e importe o repositório
 3. Em **Environment Variables**, adicione todas as variáveis do `.env.example`
 4. Deploy automático a cada `git push`!
+
+### Variáveis importantes para conversão
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID`
+- `NEXT_PUBLIC_META_PIXEL_ID`
 
 ### Domínio próprio
 1. Compre o domínio em [registro.br](https://registro.br) (ex: `luxoreborn.com.br`)

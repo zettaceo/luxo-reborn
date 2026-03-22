@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Playfair_Display, DM_Sans, Great_Vibes } from 'next/font/google'
 import Script from 'next/script'
 import { Toaster } from 'react-hot-toast'
+import AnalyticsBootstrap from '@/components/analytics/AnalyticsBootstrap'
 import './globals.css'
 
 const playfair = Playfair_Display({
@@ -90,6 +91,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </>
         )}
 
+        <AnalyticsBootstrap />
         {children}
         <Toaster
           position="bottom-center"
