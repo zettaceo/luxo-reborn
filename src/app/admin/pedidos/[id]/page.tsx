@@ -6,6 +6,7 @@ import OrderActions from './OrderActions'
 
 export const metadata: Metadata = { title: 'Detalhes do Pedido' }
 export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
 interface OrderItem {
   id: string

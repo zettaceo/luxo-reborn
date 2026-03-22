@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Pedidos' }
 export const revalidate = 0
+export const dynamic = 'force-dynamic'
 
 interface OrderRow {
   id: string

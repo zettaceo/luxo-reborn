@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: 'Produtos',
   description: 'Explore nossa coleção completa de Bebês Reborn, Pelúcias e Brinquedos.',
 }
+export const dynamic = 'force-dynamic'
 
 export default async function ProdutosPage() {
   const categories = await db.categories.findAll()

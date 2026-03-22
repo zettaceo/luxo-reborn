@@ -8,6 +8,7 @@ interface Props {
 }
 
 export const metadata: Metadata = { title: 'Editar Produto' }
+export const dynamic = 'force-dynamic'
 
 export default async function EditProductPage({ params }: Props) {
   const categories = await db.categories.findAll()

@@ -10,6 +10,8 @@ import ReviewsSection from '@/components/store/ReviewsSection'
 import TrustBar from '@/components/store/TrustBar'
 import Footer from '@/components/store/Footer'
 
+export const dynamic = 'force-dynamic'
+
 export default async function HomePage() {
   const [categories, featuredProducts] = await Promise.all([
     db.categories.findAll(),

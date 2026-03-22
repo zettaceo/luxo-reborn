@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import ProductForm from '@/components/admin/ProductForm'
 
 export const metadata: Metadata = { title: 'Novo Produto' }
+export const dynamic = 'force-dynamic'
 
 export default async function NewProductPage() {
   const categories = await db.categories.findAll()

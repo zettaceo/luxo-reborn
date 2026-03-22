@@ -6,6 +6,7 @@ import type { Metadata } from 'next'
 
 export const metadata: Metadata = { title: 'Dashboard' }
 export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 interface RecentOrder {
   id: string

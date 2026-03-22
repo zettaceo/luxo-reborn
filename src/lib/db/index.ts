@@ -4,20 +4,54 @@
 // O resto do projeto não precisa mudar.
 // ══════════════════════════════════════════════
 
-import { createClient } from '@supabase/supabase-js'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl  = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabaseService = process.env.SUPABASE_SERVICE_ROLE_KEY!
+function getRequiredEnv(name: 'NEXT_PUBLIC_SUPABASE_URL' | 'NEXT_PUBLIC_SUPABASE_ANON_KEY' | 'SUPABASE_SERVICE_ROLE_KEY') {
+  const value = process.env[name]
+  if (!value) throw new Error(`${name} is required.`)
+  return value
+}
+
+let supabaseClient: SupabaseClient | null = null
+let supabaseAdminClient: SupabaseClient | null = null
+
+function getSupabaseClient() {
+  if (!supabaseClient) {
+    supabaseClient = createClient(
+      getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
+      getRequiredEnv('NEXT_PUBLIC_SUPABASE_ANON_KEY')
+    )
+  }
+  return supabaseClient
+}
+
+function getSupabaseAdminClient() {
+  if (!supabaseAdminClient) {
+    supabaseAdminClient = createClient(
+      getRequiredEnv('NEXT_PUBLIC_SUPABASE_URL'),
+      getRequiredEnv('SUPABASE_SERVICE_ROLE_KEY'),
+      { auth: { autoRefreshToken: false, persistSession: false } }
+    )
+  }
+  return supabaseAdminClient
+}
+
+function createLazyClient(getClient: () => SupabaseClient): SupabaseClient {
+  return new Proxy({} as SupabaseClient, {
+    get(_target, prop) {
+      const client = getClient()
+      const value = Reflect.get(client, prop)
+      return typeof value === 'function' ? value.bind(client) : value
+    },
+  })
+}
 
 // Client público — para uso no frontend (respeita RLS)
-export const supabase = createClient(supabaseUrl, supabaseAnon)
+export const supabase = createLazyClient(getSupabaseClient)
 
 // Client admin — para API Routes que precisam de acesso total (bypassa RLS)
 // NUNCA exponha supabaseAdmin no frontend
-export const supabaseAdmin = createClient(supabaseUrl, supabaseService, {
-  auth: { autoRefreshToken: false, persistSession: false }
-})
+export const supabaseAdmin = createLazyClient(getSupabaseAdminClient)
 
 // ── HELPERS DE PRODUTO ────────────────────────
 export const db = {
