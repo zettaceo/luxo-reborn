@@ -3,7 +3,13 @@
 // ══════════════════════════════════════════════
 
 import MercadoPagoConfig, { Payment } from 'mercadopago'
-import type { Order, CartItem } from '@/types'
+
+interface PaymentItem {
+  product_id: string
+  product_name: string
+  unit_price: number
+  quantity: number
+}
 
 const client = new MercadoPagoConfig({
   accessToken: process.env.MERCADOPAGO_ACCESS_TOKEN!,
@@ -20,7 +26,7 @@ export async function createPixPayment(order: {
   customerName: string
   customerEmail: string
   customerCpf: string
-  items: CartItem[]
+  items: PaymentItem[]
 }) {
   const result = await payment.create({
     body: {
@@ -66,7 +72,7 @@ export async function createCardPayment(order: {
   customerName: string
   customerEmail: string
   customerCpf: string
-  items: CartItem[]
+  items: PaymentItem[]
 }) {
   const result = await payment.create({
     body: {
@@ -136,9 +142,19 @@ export function calculateInstallments(total: number) {
 // ── VALIDAR WEBHOOK ──────────────────────────
 export function isValidWebhook(signature: string, body: string): boolean {
   const secret = process.env.MERCADOPAGO_WEBHOOK_SECRET
-  if (!secret) return true
+  if (!secret) return false
+
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const crypto = require('crypto') as typeof import('crypto')
   const expected = crypto.createHmac('sha256', secret).update(body).digest('hex')
-  return signature === expected
+  const normalizedSignature = signature
+    .split(',')
+    .map((part) => part.trim())
+    .find((part) => part.startsWith('v1='))
+    ?.replace('v1=', '') ?? signature.trim()
+
+  const incoming = Buffer.from(normalizedSignature)
+  const local = Buffer.from(expected)
+  if (incoming.length !== local.length) return false
+  return crypto.timingSafeEqual(incoming, local)
 }

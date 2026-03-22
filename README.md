@@ -48,6 +48,7 @@ Abra `.env.local` e preencha:
 2. Vá em **SQL Editor → New Query**
 3. Cole o conteúdo de `supabase/schema.sql` e execute
 4. Em seguida, execute também `supabase/analytics.sql` (painel de funil/conversão)
+5. Se o projeto já existia antes, execute `supabase/security_patch.sql` para remover acesso público direto a pedidos
 
 ### 4. Configure o Storage
 
@@ -64,6 +65,7 @@ npm run dev
 2. Crie um aplicativo
 3. Copie o **Access Token** de produção e a **Public Key**
 4. Configure o Webhook URL: `https://SEU_DOMINIO/api/webhooks/mercadopago`
+5. Defina `MERCADOPAGO_WEBHOOK_SECRET` (obrigatório em produção)
 
 ### 6. Rode localmente
 

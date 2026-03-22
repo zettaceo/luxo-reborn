@@ -3,60 +3,178 @@ import { createPixPayment, createCardPayment } from '@/lib/mercadopago'
 import { db } from '@/lib/db'
 import { supabaseAdmin } from '@/lib/db'
 
+type CheckoutItemInput = {
+  product?: { id?: string }
+  quantity?: number
+}
+
+const SHIPPING_PRICES: Record<string, number> = {
+  PAC: 18.5,
+  SEDEX: 32,
+  MINI: 14.9,
+}
+
+function parseShippingCost(service: string) {
+  const normalized = service.trim().toUpperCase()
+  const price = SHIPPING_PRICES[normalized]
+  if (price === undefined) return null
+  return { service: normalized, price }
+}
+
+function normalizeItems(items: unknown): Array<{ productId: string; quantity: number }> {
+  if (!Array.isArray(items) || items.length === 0) return []
+
+  return items
+    .map((raw) => raw as CheckoutItemInput)
+    .map((item) => ({
+      productId: item.product?.id?.trim() ?? '',
+      quantity: Number(item.quantity ?? 0),
+    }))
+    .filter((item) => item.productId && Number.isInteger(item.quantity) && item.quantity > 0)
+}
+
+function sanitizeText(value: unknown) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
 // POST /api/payment — cria pagamento e pedido
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const { order, payment_method, card_token, card_installments } = body
+    const paymentMethod = sanitizeText(payment_method)
+
+    const customerName = sanitizeText(order?.customer_name)
+    const customerEmail = sanitizeText(order?.customer_email).toLowerCase()
+    const customerPhone = sanitizeText(order?.customer_phone)
+    const customerCpf = sanitizeText(order?.customer_cpf).replace(/\D/g, '')
+    const addressZip = sanitizeText(order?.address_zip).replace(/\D/g, '')
+    const addressStreet = sanitizeText(order?.address_street)
+    const addressNumber = sanitizeText(order?.address_number)
+    const addressComplement = sanitizeText(order?.address_complement)
+    const addressNeighborhood = sanitizeText(order?.address_neighborhood)
+    const addressCity = sanitizeText(order?.address_city)
+    const addressState = sanitizeText(order?.address_state).toUpperCase()
+    const shippingService = sanitizeText(order?.shipping_service)
+
+    if (!customerName || !customerEmail || !customerPhone || customerCpf.length !== 11) {
+      return NextResponse.json({ error: 'Dados do cliente inválidos.' }, { status: 400 })
+    }
+
+    if (!addressZip || !addressStreet || !addressNumber || !addressNeighborhood || !addressCity || !addressState) {
+      return NextResponse.json({ error: 'Dados de entrega inválidos.' }, { status: 400 })
+    }
+
+    const shipping = parseShippingCost(shippingService)
+    if (!shipping) {
+      return NextResponse.json({ error: 'Frete inválido.' }, { status: 400 })
+    }
+
+    const normalizedItems = normalizeItems(order?.items)
+    if (normalizedItems.length === 0) {
+      return NextResponse.json({ error: 'Carrinho inválido.' }, { status: 400 })
+    }
+    if (!Array.isArray(order?.items) || normalizedItems.length !== order.items.length) {
+      return NextResponse.json({ error: 'Itens inválidos no carrinho.' }, { status: 400 })
+    }
+
+    if (!['pix', 'credit_card', 'debit_card'].includes(paymentMethod)) {
+      return NextResponse.json({ error: 'Método de pagamento inválido.' }, { status: 400 })
+    }
+
+    const productIds = Array.from(new Set(normalizedItems.map((item) => item.productId)))
+    const { data: products, error: productsError } = await supabaseAdmin
+      .from('products')
+      .select('id, name, price, stock, is_active, images:product_images(url, is_cover, position)')
+      .in('id', productIds)
+
+    if (productsError) throw productsError
+    if (!products || products.length !== productIds.length) {
+      return NextResponse.json({ error: 'Um ou mais produtos não foram encontrados.' }, { status: 400 })
+    }
+
+    const productsById = new Map(products.map((product) => [product.id, product]))
+
+    const trustedItems = normalizedItems.map((item) => {
+      const product = productsById.get(item.productId)
+      if (!product) throw new Error('Produto não encontrado')
+      if (!product.is_active) throw new Error(`Produto "${product.name}" está inativo.`)
+      if (Number(product.stock) < item.quantity) throw new Error(`Estoque insuficiente para "${product.name}".`)
+
+      const unitPrice = Number(product.price)
+      const coverImage = Array.isArray(product.images)
+        ? product.images.find((img: { is_cover?: boolean; url?: string }) => img.is_cover)?.url ?? product.images[0]?.url
+        : undefined
+
+      return {
+        product_id: product.id,
+        product_name: product.name,
+        unit_price: unitPrice,
+        quantity: item.quantity,
+        total_price: unitPrice * item.quantity,
+        product_image: coverImage,
+      }
+    })
+
+    const subtotal = trustedItems.reduce((sum, item) => sum + item.total_price, 0)
+    const total = subtotal + shipping.price
+
+    const cardToken = sanitizeText(card_token)
+    if ((paymentMethod === 'credit_card' || paymentMethod === 'debit_card') && !cardToken) {
+      return NextResponse.json({ error: 'Token do cartão inválido.' }, { status: 400 })
+    }
 
     // 1. Cria o pedido no banco (status pending)
     const newOrder = await db.orders.create({
-      customer_name:        order.customer_name,
-      customer_email:       order.customer_email,
-      customer_phone:       order.customer_phone,
-      customer_cpf:         order.customer_cpf,
-      address_zip:          order.address_zip,
-      address_street:       order.address_street,
-      address_number:       order.address_number,
-      address_complement:   order.address_complement,
-      address_neighborhood: order.address_neighborhood,
-      address_city:         order.address_city,
-      address_state:        order.address_state,
-      subtotal:             order.subtotal,
-      shipping_cost:        order.shipping_cost,
-      shipping_service:     order.shipping_service ?? null,
-      total:                order.total,
-      payment_method,
+      customer_name:        customerName,
+      customer_email:       customerEmail,
+      customer_phone:       customerPhone,
+      customer_cpf:         customerCpf,
+      address_zip:          addressZip,
+      address_street:       addressStreet,
+      address_number:       addressNumber,
+      address_complement:   addressComplement || null,
+      address_neighborhood: addressNeighborhood,
+      address_city:         addressCity,
+      address_state:        addressState,
+      subtotal,
+      shipping_cost:        shipping.price,
+      shipping_service:     shipping.service,
+      total,
+      payment_method: paymentMethod,
       payment_status: 'pending',
       status: 'pending',
     })
 
     // 2. Salva os itens do pedido
-    const items = order.items.map((item: {
-      product: { id: string; name: string; images?: { url: string }[]; price: number }
-      quantity: number
-    }) => ({
+    const items = trustedItems.map((item) => ({
       order_id:      newOrder.id,
-      product_id:    item.product.id,
-      product_name:  item.product.name,
-      product_image: item.product.images?.[0]?.url,
+      product_id:    item.product_id,
+      product_name:  item.product_name,
+      product_image: item.product_image,
       quantity:      item.quantity,
-      unit_price:    item.product.price,
-      total_price:   item.product.price * item.quantity,
+      unit_price:    item.unit_price,
+      total_price:   item.total_price,
     }))
 
-    await supabaseAdmin.from('order_items').insert(items)
+    const { error: itemsError } = await supabaseAdmin.from('order_items').insert(items)
+    if (itemsError) throw itemsError
 
     // 3. Processa o pagamento
-    if (payment_method === 'pix') {
+    if (paymentMethod === 'pix') {
       const pix = await createPixPayment({
         orderId:       newOrder.id,
         orderNumber:   newOrder.order_number,
-        total:         newOrder.total,
-        customerName:  order.customer_name,
-        customerEmail: order.customer_email,
-        customerCpf:   order.customer_cpf,
-        items:         order.items,
+        total:         total,
+        customerName:  customerName,
+        customerEmail: customerEmail,
+        customerCpf:   customerCpf,
+        items:         trustedItems.map((item) => ({
+          product_id: item.product_id,
+          product_name: item.product_name,
+          unit_price: item.unit_price,
+          quantity: item.quantity,
+        })),
       })
 
       // Salva dados do Pix no pedido
@@ -74,21 +192,27 @@ export async function POST(req: NextRequest) {
         pix_qr_code:        pix.qrCode,
         pix_qr_code_base64: pix.qrCodeBase64,
         pix_expiration:     pix.expiresAt,
-        total:              newOrder.total,
+        total,
       })
     }
 
-    if (payment_method === 'credit_card' || payment_method === 'debit_card') {
+    if (paymentMethod === 'credit_card' || paymentMethod === 'debit_card') {
+      const installments = Number(card_installments)
       const card = await createCardPayment({
         orderId:       newOrder.id,
         orderNumber:   newOrder.order_number,
-        total:         newOrder.total,
-        installments:  card_installments ?? 1,
-        token:         card_token,
-        customerName:  order.customer_name,
-        customerEmail: order.customer_email,
-        customerCpf:   order.customer_cpf,
-        items:         order.items,
+        total,
+        installments:  Number.isInteger(installments) && installments > 0 ? installments : 1,
+        token:         cardToken,
+        customerName:  customerName,
+        customerEmail: customerEmail,
+        customerCpf:   customerCpf,
+        items:         trustedItems.map((item) => ({
+          product_id: item.product_id,
+          product_name: item.product_name,
+          unit_price: item.unit_price,
+          quantity: item.quantity,
+        })),
       })
 
       const isPaid = card.status === 'approved'
@@ -102,7 +226,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({
         order_id:      newOrder.id,
         order_number:  newOrder.order_number,
-        payment_method,
+        payment_method: paymentMethod,
         status:        card.status,
         status_detail: card.statusDetail,
         approved:      isPaid,

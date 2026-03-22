@@ -191,10 +191,11 @@ CREATE POLICY "Avaliações aprovadas visíveis publicamente"
   ON reviews FOR SELECT USING (is_approved = TRUE);
 
 -- Escrita pública: criação de pedidos e avaliações
-CREATE POLICY "Clientes podem criar pedidos"
-  ON orders FOR INSERT WITH CHECK (TRUE);
-CREATE POLICY "Clientes podem ver seus pedidos"
-  ON orders FOR SELECT USING (TRUE);
+-- Segurança: pedidos NÃO ficam acessíveis via anon/authenticated diretamente.
+-- O acesso é feito apenas pelas API routes com service_role.
+DROP POLICY IF EXISTS "Clientes podem criar pedidos" ON orders;
+DROP POLICY IF EXISTS "Clientes podem ver seus pedidos" ON orders;
+
 CREATE POLICY "Clientes podem criar avaliações"
   ON reviews FOR INSERT WITH CHECK (TRUE);
 CREATE POLICY "Clientes podem criar conta"
