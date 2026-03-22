@@ -1,12 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/db'
-import { createSlug } from '@/lib/utils'
+import { generateUniqueProductSlug } from '@/lib/db/productSlug'
+
+function getErrorMessage(error: unknown) {
+  if (typeof error === 'object' && error && 'message' in error && typeof error.message === 'string') {
+    if (error.message.includes('products_slug_key')) {
+      return 'Já existe um produto com nome parecido. Ajuste o nome e tente novamente.'
+    }
+    return error.message
+  }
+  return 'Erro ao criar produto'
+}
 
 // POST /api/admin/products — cria produto com imagens
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const slug = createSlug(body.name)
+    if (!body?.name?.trim()) {
+      return NextResponse.json({ error: 'Nome do produto é obrigatório.' }, { status: 400 })
+    }
+
+    const slug = await generateUniqueProductSlug(body.name)
 
     // 1. Cria o produto
     const { data: product, error } = await supabaseAdmin
@@ -37,12 +51,13 @@ export async function POST(req: NextRequest) {
         is_cover:   img.is_cover,
         position:   img.position,
       }))
-      await supabaseAdmin.from('product_images').insert(imgs)
+      const { error: imageError } = await supabaseAdmin.from('product_images').insert(imgs)
+      if (imageError) throw imageError
     }
 
     return NextResponse.json({ data: product }, { status: 201 })
   } catch (error) {
     console.error(error)
-    return NextResponse.json({ error: 'Erro ao criar produto' }, { status: 500 })
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }

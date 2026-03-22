@@ -134,13 +134,15 @@ export default function ProductForm({ categories, product }: Props) {
         body: JSON.stringify(body),
       })
 
-      if (!res.ok) throw new Error('Erro ao salvar')
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao salvar')
 
       toast.success(isEdit ? 'Produto atualizado! ✅' : 'Produto criado! 🎉')
       router.push('/admin/produtos')
       router.refresh()
-    } catch {
-      toast.error('Erro ao salvar produto')
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Erro ao salvar produto'
+      toast.error(message)
     } finally {
       setSaving(false)
     }
