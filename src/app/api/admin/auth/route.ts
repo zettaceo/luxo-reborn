@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { createAdminSessionToken } from '@/lib/auth/admin'
 
 export async function POST(req: NextRequest) {
-  const { password } = await req.json()
+  const body = await req.json()
+  const password = typeof body?.password === 'string' ? body.password : ''
 
   if (password !== process.env.ADMIN_SECRET_KEY) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const res = NextResponse.json({ ok: true })
-  res.cookies.set('admin_token', process.env.ADMIN_SECRET_KEY!, {
+  res.cookies.set('admin_token', await createAdminSessionToken(), {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',

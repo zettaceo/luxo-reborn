@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/db'
+import { isAdminRequest } from '@/lib/auth/admin'
 
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
   try {
     const { status, tracking_code, shipping_service } = await req.json()
     const updates: Record<string, string | null> = {

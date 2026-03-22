@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/db'
+import { isAdminRequest } from '@/lib/auth/admin'
 
 // PUT /api/admin/reviews/[id] — aprovar ou atualizar avaliação
 export async function PUT(
   req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
   try {
     const body = await req.json()
     const { error } = await supabaseAdmin
@@ -22,9 +27,13 @@ export async function PUT(
 
 // DELETE /api/admin/reviews/[id] — excluir avaliação
 export async function DELETE(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
   try {
     const { error } = await supabaseAdmin
       .from('reviews')

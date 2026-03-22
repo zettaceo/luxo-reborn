@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/db'
 import { generateUniqueProductSlug } from '@/lib/db/productSlug'
+import { isAdminRequest } from '@/lib/auth/admin'
 
 function getErrorMessage(error: unknown) {
   if (typeof error === 'object' && error && 'message' in error && typeof error.message === 'string') {
@@ -14,6 +15,10 @@ function getErrorMessage(error: unknown) {
 
 // PUT /api/admin/products/[id]
 export async function PUT(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
   try {
     const body = await req.json()
     if (!body?.name?.trim()) {
@@ -64,7 +69,11 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
 }
 
 // DELETE /api/admin/products/[id]
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
   try {
     await supabaseAdmin.from('product_images').delete().eq('product_id', params.id)
     await supabaseAdmin.from('products').delete().eq('id', params.id)

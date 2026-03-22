@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/db'
 import { generateUniqueProductSlug } from '@/lib/db/productSlug'
+import { isAdminRequest } from '@/lib/auth/admin'
 
 function getErrorMessage(error: unknown) {
   if (typeof error === 'object' && error && 'message' in error && typeof error.message === 'string') {
@@ -14,6 +15,10 @@ function getErrorMessage(error: unknown) {
 
 // POST /api/admin/products — cria produto com imagens
 export async function POST(req: NextRequest) {
+  if (!(await isAdminRequest(req))) {
+    return NextResponse.json({ error: 'Não autorizado' }, { status: 401 })
+  }
+
   try {
     const body = await req.json()
     if (!body?.name?.trim()) {
