@@ -39,6 +39,8 @@ Abra `.env.local` e preencha:
 | `MERCADOPAGO_ACCESS_TOKEN` | mercadopago.com.br/developers |
 | `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | mercadopago.com.br/developers |
 | `ADMIN_SECRET_KEY` | Crie uma senha forte qualquer |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics 4 (opcional) |
+| `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel (opcional) |
 
 ### 3. Configure o banco de dados
 
@@ -68,6 +70,7 @@ npm run dev
 npm run dev
 # Acesse: http://localhost:3000
 # Admin: http://localhost:3000/admin (senha no .env.local)
+# Rastreio: http://localhost:3000/pedidos
 ```
 
 ---
