@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import toast from 'react-hot-toast'
 import { useCart } from '@/hooks/useCart'
+import { trackAddPaymentInfo, trackAddShippingInfo, trackBeginCheckout, trackEvent, trackPurchase } from '@/lib/analytics'
 import { formatCurrency, fetchAddressByZip, formatZip, isValidCpf, calculateInstallments } from '@/lib/utils'
 import type { ShippingOption } from '@/types'
 
@@ -34,6 +35,8 @@ export default function CheckoutClient() {
   const router = useRouter()
   const { items, total, clearCart } = useCart()
   const cartTotal = total()
+  const checkoutTrackedRef = useRef(false)
+  const pixPurchaseTrackedRef = useRef(false)
 
   const [step,     setStep]     = useState<Step>('address')
   const [loading,  setLoading]  = useState(false)
@@ -73,6 +76,12 @@ export default function CheckoutClient() {
   useEffect(() => {
     if (items.length === 0 && step !== 'pix') router.push('/')
   }, [items, step, router])
+
+  useEffect(() => {
+    if (items.length === 0 || checkoutTrackedRef.current) return
+    checkoutTrackedRef.current = true
+    trackBeginCheckout(items, cartTotal)
+  }, [items, cartTotal])
 
   // ── CEP auto-fill ──
   async function handleZipBlur() {
@@ -148,6 +157,7 @@ export default function CheckoutClient() {
           address_state:        form.state,
           subtotal:             cartTotal,
           shipping_cost:        selectedShipping.price,
+          shipping_service:     selectedShipping.service,
           total:                orderTotal,
           items,
         },
@@ -161,6 +171,8 @@ export default function CheckoutClient() {
 
       if (!res.ok) throw new Error(data.error ?? 'Erro no pagamento')
 
+      trackAddPaymentInfo(items, orderTotal, paymentMethod === 'pix' ? 'pix' : 'credit_card')
+
       if (paymentMethod === 'pix') {
         setPixData({
           qrCode:        data.pix_qr_code,
@@ -172,16 +184,25 @@ export default function CheckoutClient() {
         clearCart()
         setStep('pix')
         // Poll for payment confirmation
-        pollPixStatus(data.order_id)
+        pollPixStatus(data.order_id, data.order_number, selectedShipping.service)
       } else {
         if (data.approved) {
+          trackPurchase({
+            orderNumber: data.order_number,
+            items,
+            value: orderTotal,
+            paymentType: 'credit_card',
+            shippingTier: selectedShipping.service,
+          })
           clearCart()
           router.push(`/checkout/sucesso?order=${data.order_number}`)
         } else {
+          trackEvent('payment_failed', { payment_method: 'credit_card', reason: data.status_detail ?? 'rejected' })
           toast.error('Pagamento recusado. Verifique os dados do cartão.')
         }
       }
     } catch (err: unknown) {
+      trackEvent('payment_failed', { payment_method: paymentMethod, reason: 'request_error' })
       toast.error(err instanceof Error ? err.message : 'Erro no pagamento')
     } finally {
       setLoading(false)
@@ -189,12 +210,22 @@ export default function CheckoutClient() {
   }
 
   // ── Poll Pix status every 5s for 30 min ──
-  function pollPixStatus(orderId: string) {
+  function pollPixStatus(orderId: string, orderNumber: string, shippingService: string) {
     const interval = setInterval(async () => {
       try {
         const res = await fetch(`/api/orders/${orderId}/status`)
         const { payment_status } = await res.json()
         if (payment_status === 'approved') {
+          if (!pixPurchaseTrackedRef.current) {
+            pixPurchaseTrackedRef.current = true
+            trackPurchase({
+              orderNumber,
+              items,
+              value: orderTotal,
+              paymentType: 'pix',
+              shippingTier: shippingService,
+            })
+          }
           setPixPaid(true)
           clearInterval(interval)
         }
@@ -319,7 +350,11 @@ export default function CheckoutClient() {
             </div>
 
             <button
-              onClick={() => { if (!selectedShipping) { toast.error('Selecione o frete'); return } setStep('payment') }}
+              onClick={() => {
+                if (!selectedShipping) { toast.error('Selecione o frete'); return }
+                trackAddShippingInfo(items, cartTotal + selectedShipping.price, selectedShipping.service)
+                setStep('payment')
+              }}
               className="btn-primary w-full mt-7 py-4"
             >
               Continuar → Pagamento

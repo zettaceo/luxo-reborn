@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import toast from 'react-hot-toast'
 import { useCart } from '@/hooks/useCart'
+import { trackAddToCart, trackViewItem } from '@/lib/analytics'
 import { formatCurrency } from '@/lib/utils'
 import type { Product, Review } from '@/types'
 
@@ -13,7 +15,9 @@ interface Props {
 }
 
 export default function ProductPageClient({ product }: Props) {
+  const router = useRouter()
   const { addItem } = useCart()
+  const trackedProductRef = useRef<string | null>(null)
   const [qty,          setQty]          = useState(1)
   const [activeImg,    setActiveImg]    = useState(0)
   const [addingCart,   setAddingCart]   = useState(false)
@@ -32,11 +36,24 @@ export default function ProductPageClient({ product }: Props) {
 
   const installmentPrice = (product.price / 12).toFixed(2).replace('.', ',')
 
+  useEffect(() => {
+    if (trackedProductRef.current === product.id) return
+    trackedProductRef.current = product.id
+    trackViewItem(product)
+  }, [product])
+
   function handleAddToCart() {
     setAddingCart(true)
     addItem(product, qty)
+    trackAddToCart(product, qty)
     toast.success(`${qty}x ${product.name} adicionado!`)
     setTimeout(() => setAddingCart(false), 1200)
+  }
+
+  function handleBuyNow() {
+    addItem(product, qty)
+    trackAddToCart(product, qty)
+    router.push('/checkout')
   }
 
   async function handleReviewSubmit(e: React.FormEvent) {
@@ -220,6 +237,13 @@ export default function ProductPageClient({ product }: Props) {
                 className={`btn-primary w-full py-4 text-base ${addingCart ? 'bg-green-500 from-green-500 to-emerald-400' : ''}`}
               >
                 {addingCart ? '✓ Adicionado ao carrinho!' : '🛒 Adicionar ao Carrinho'}
+              </button>
+
+              <button
+                onClick={handleBuyNow}
+                className="btn-outline w-full py-4 text-base"
+              >
+                ⚡ Comprar agora
               </button>
 
               <a

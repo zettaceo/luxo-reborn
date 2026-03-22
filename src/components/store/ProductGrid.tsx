@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useState } from 'react'
 import toast from 'react-hot-toast'
 import { useCart } from '@/hooks/useCart'
+import { trackAddToCart, trackEvent } from '@/lib/analytics'
 import { formatCurrency } from '@/lib/utils'
 import type { Product } from '@/types'
 
@@ -43,12 +44,24 @@ export function ProductCard({ product }: { product: Product }) {
     if (product.stock <= 0) return
     setAdding(true)
     addItem(product)
+    trackAddToCart(product, 1)
     toast.success(`${product.name} adicionado!`)
     setTimeout(() => setAdding(false), 1200)
   }
 
   return (
-    <Link href={`/produtos/${product.slug}`} className="group block">
+    <Link
+      href={`/produtos/${product.slug}`}
+      className="group block"
+      onClick={() => trackEvent('select_item', {
+        item_list_name: 'catalogo',
+        items: [{
+          item_id: product.id,
+          item_name: product.name,
+          price: Number(product.price),
+        }],
+      })}
+    >
       <article className="bg-white rounded-2xl overflow-hidden shadow-card transition-all duration-300 group-hover:-translate-y-1.5 group-hover:shadow-card-hover">
         {/* Image */}
         <div className="relative aspect-square bg-gradient-to-br from-rose-pale to-[#fff0f9] overflow-hidden">

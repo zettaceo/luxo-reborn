@@ -3,6 +3,7 @@ import type { Metadata } from 'next'
 import Header from '@/components/store/Header'
 import CartDrawer from '@/components/store/CartDrawer'
 import { Footer } from '@/components/store/BannerStrip'
+import SuccessTracking from './SuccessTracking'
 
 export const metadata: Metadata = { title: 'Pedido Confirmado!' }
 
@@ -15,6 +16,7 @@ export default function SuccessPage({ searchParams }: Props) {
     <>
       <Header />
       <CartDrawer />
+      <SuccessTracking orderNumber={searchParams.order} />
       <main className="min-h-screen bg-cream flex items-center justify-center px-4 py-20">
         <div className="max-w-md w-full text-center">
           <div className="text-8xl mb-6 animate-bounce-slow">🎉</div>
