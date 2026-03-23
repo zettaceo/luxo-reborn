@@ -29,6 +29,11 @@ function toRate(current: number, total: number) {
   return `${((current / total) * 100).toFixed(1)}%`
 }
 
+function toRateNumber(current: number, total: number) {
+  if (!total) return 0
+  return (current / total) * 100
+}
+
 async function getMarketingData(days: number) {
   const sinceDate = new Date()
   sinceDate.setDate(sinceDate.getDate() - days)
@@ -180,15 +185,81 @@ export default async function AdminMarketingPage({ searchParams }: Props) {
   const days = [7, 14, 30, 60].includes(Number(searchParams.days)) ? Number(searchParams.days) : 30
   const data = await getMarketingData(days)
 
+  const viewRate = toRateNumber(data.viewItem, data.sessions)
+  const cartRate = toRateNumber(data.addToCart, data.viewItem)
+  const checkoutRate = toRateNumber(data.beginCheckout, data.addToCart)
+  const paymentRate = toRateNumber(data.addPayment, data.beginCheckout)
+  const purchaseRate = toRateNumber(data.purchase, data.beginCheckout)
+
+  const recommendations: string[] = []
+  if (data.sessions > 0 && viewRate < 20) {
+    recommendations.push('Melhore banners e destaque produtos na home para aumentar visualizações de produto.')
+  }
+  if (data.viewItem > 0 && cartRate < 8) {
+    recommendations.push('Revise preço, descrição e prova social (avaliações) para aumentar adição ao carrinho.')
+  }
+  if (data.addToCart > 0 && checkoutRate < 40) {
+    recommendations.push('Facilite o caminho para checkout: botão de compra mais visível e menos distrações.')
+  }
+  if (data.beginCheckout > 0 && paymentRate < 70) {
+    recommendations.push('Simplifique frete e formulário de checkout para reduzir desistência antes do pagamento.')
+  }
+  if (data.beginCheckout > 0 && purchaseRate < 40) {
+    recommendations.push('Recupere abandono com WhatsApp e e-mail para quem iniciou checkout e não concluiu.')
+  }
+  if (recommendations.length === 0) {
+    recommendations.push('Funil saudável no período. Foque em aumentar tráfego qualificado para escalar vendas.')
+  }
+
   const cards = [
-    { label: 'Sessões', value: String(data.sessions), helper: `Últimos ${days} dias` },
-    { label: 'Visualizou produto', value: String(data.viewItem), helper: toRate(data.viewItem, data.sessions) },
-    { label: 'Adicionou ao carrinho', value: String(data.addToCart), helper: toRate(data.addToCart, data.viewItem) },
-    { label: 'Iniciou checkout', value: String(data.beginCheckout), helper: toRate(data.beginCheckout, data.addToCart) },
-    { label: 'Informou frete', value: String(data.addShipping), helper: toRate(data.addShipping, data.beginCheckout) },
-    { label: 'Informou pagamento', value: String(data.addPayment), helper: toRate(data.addPayment, data.beginCheckout) },
-    { label: 'Compras', value: String(data.purchase), helper: data.conversionRate },
-    { label: 'Abandono checkout', value: data.checkoutAbandonment, helper: 'Menor é melhor' },
+    {
+      label: 'Sessões',
+      value: String(data.sessions),
+      helper: `Últimos ${days} dias`,
+      explain: 'Quantidade de pessoas que entraram no site.',
+    },
+    {
+      label: 'Visualizou produto',
+      value: String(data.viewItem),
+      helper: toRate(data.viewItem, data.sessions),
+      explain: 'De cada 100 visitantes, quantos abriram uma página de produto.',
+    },
+    {
+      label: 'Adicionou ao carrinho',
+      value: String(data.addToCart),
+      helper: toRate(data.addToCart, data.viewItem),
+      explain: 'De cada 100 que viram produto, quantos colocaram no carrinho.',
+    },
+    {
+      label: 'Iniciou checkout',
+      value: String(data.beginCheckout),
+      helper: toRate(data.beginCheckout, data.addToCart),
+      explain: 'De cada 100 com carrinho, quantos avançaram para finalizar.',
+    },
+    {
+      label: 'Informou frete',
+      value: String(data.addShipping),
+      helper: toRate(data.addShipping, data.beginCheckout),
+      explain: 'Quem preencheu dados de entrega dentro do checkout.',
+    },
+    {
+      label: 'Informou pagamento',
+      value: String(data.addPayment),
+      helper: toRate(data.addPayment, data.beginCheckout),
+      explain: 'Quem chegou à etapa de pagamento.',
+    },
+    {
+      label: 'Compras',
+      value: String(data.purchase),
+      helper: data.conversionRate,
+      explain: 'Pedidos pagos com sucesso no período.',
+    },
+    {
+      label: 'Abandono checkout',
+      value: data.checkoutAbandonment,
+      helper: 'Menor é melhor',
+      explain: 'Percentual de quem iniciou checkout e não concluiu.',
+    },
   ]
 
   return (
@@ -225,14 +296,36 @@ export default async function AdminMarketingPage({ searchParams }: Props) {
         </div>
       )}
 
+      <div className="mb-6 bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-900">
+        <p className="font-semibold mb-2">Como ler este painel (resumo rápido)</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>O funil deve sempre diminuir aos poucos, não despencar entre uma etapa e outra.</li>
+          <li>Compare períodos (7/14/30/60 dias) para entender se as ações melhoraram ou pioraram resultados.</li>
+          <li>Use “Canais” e “Campanhas” para investir mais no que gera receita de verdade.</li>
+        </ul>
+      </div>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         {cards.map((card) => (
           <div key={card.label} className="bg-white rounded-2xl border border-rose-light p-5">
             <p className="text-xs font-semibold text-muted uppercase tracking-wide mb-1">{card.label}</p>
             <p className="font-display text-2xl font-bold text-charcoal">{card.value}</p>
             <p className="text-xs text-muted mt-1">{card.helper}</p>
+            <p className="text-[11px] text-muted mt-2 leading-relaxed">{card.explain}</p>
           </div>
         ))}
+      </div>
+
+      <div className="bg-white rounded-2xl border border-rose-light p-5 mb-6">
+        <h2 className="font-display text-base font-bold text-charcoal mb-3">🧭 Próximas ações sugeridas</h2>
+        <ul className="space-y-2 text-sm text-charcoal">
+          {recommendations.map((item) => (
+            <li key={item} className="flex items-start gap-2">
+              <span className="text-rose-deep">•</span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6 mb-6">
