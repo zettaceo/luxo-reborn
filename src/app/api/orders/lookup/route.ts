@@ -39,7 +39,6 @@ export async function POST(req: NextRequest) {
         created_at,
         address_city,
         address_state,
-        customer_cpf,
         items:order_items(
           id,
           product_name,
@@ -58,12 +57,11 @@ export async function POST(req: NextRequest) {
 
     const enriched = await Promise.all(
       (data ?? []).map(async (order) => {
-        const { customer_cpf: _ignoredCpf, ...safeOrder } = order
-        if (!safeOrder.tracking_code) return safeOrder
-        const tracking = await getTrackingInfo(safeOrder.tracking_code)
-        if (!tracking) return safeOrder
+        if (!order.tracking_code) return order
+        const tracking = await getTrackingInfo(order.tracking_code)
+        if (!tracking) return order
         return {
-          ...safeOrder,
+          ...order,
           tracking_status: tracking.description,
           tracking_updated_at: tracking.updated_at ?? null,
           tracking_delivered: tracking.delivered,

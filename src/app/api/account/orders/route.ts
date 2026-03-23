@@ -3,6 +3,8 @@ import { getCustomerSessionFromRequest } from '@/lib/auth/customer'
 import { getTrackingInfo } from '@/lib/shipping/tracking'
 import { supabaseAdmin } from '@/lib/db'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET(req: NextRequest) {
   try {
     const session = await getCustomerSessionFromRequest(req)

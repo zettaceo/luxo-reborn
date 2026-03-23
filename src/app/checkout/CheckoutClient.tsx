@@ -35,6 +35,17 @@ interface Props {
   checkoutEnabled: boolean
 }
 
+type SavedAccountAddress = {
+  is_default: boolean
+  zip?: string
+  street?: string
+  number?: string
+  complement?: string | null
+  neighborhood?: string
+  city?: string
+  state?: string
+}
+
 export default function CheckoutClient({ checkoutEnabled }: Props) {
   const router = useRouter()
   const { items, total, clearCart } = useCart()
@@ -106,18 +117,12 @@ export default function CheckoutClient({ checkoutEnabled }: Props) {
         }
 
         const addressesRes = await fetch('/api/account/addresses')
-        let defaultAddress: {
-          zip?: string
-          street?: string
-          number?: string
-          complement?: string | null
-          neighborhood?: string
-          city?: string
-          state?: string
-        } | null = null
+        let defaultAddress: SavedAccountAddress | null = null
         if (addressesRes.ok) {
           const addressesJson = await addressesRes.json()
-          const list = Array.isArray(addressesJson.data) ? addressesJson.data : []
+          const list: SavedAccountAddress[] = Array.isArray(addressesJson.data)
+            ? (addressesJson.data as SavedAccountAddress[])
+            : []
           defaultAddress = list.find((addr) => addr.is_default) ?? list[0] ?? null
         }
 
