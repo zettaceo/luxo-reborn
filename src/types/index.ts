@@ -144,6 +144,38 @@ export interface Customer {
   created_at: string
 }
 
+export interface CustomerAddress {
+  id: string
+  customer_id?: string
+  label: string
+  recipient_name: string
+  phone?: string | null
+  zip: string
+  street: string
+  number: string
+  complement?: string | null
+  neighborhood: string
+  city: string
+  state: string
+  is_default: boolean
+  created_at: string
+  updated_at?: string
+}
+
+export interface CustomerPaymentMethod {
+  id: string
+  customer_id?: string
+  type: 'pix' | 'credit_card' | 'debit_card' | 'boleto' | 'wallet'
+  label: string
+  holder_name?: string | null
+  brand?: string | null
+  last4?: string | null
+  token_reference?: string | null
+  is_default: boolean
+  created_at: string
+  updated_at?: string
+}
+
 // ── FRETE ────────────────────────────────────
 export interface ShippingOption {
   service: string               // "PAC", "SEDEX", "Mini Envios"

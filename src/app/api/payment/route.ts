@@ -3,6 +3,7 @@ import { createPixPayment, createCardPayment } from '@/lib/mercadopago'
 import { db } from '@/lib/db'
 import { supabaseAdmin } from '@/lib/db'
 import { calculateShippingQuotes } from '@/lib/shipping/quote'
+import { getCustomerSessionFromRequest } from '@/lib/auth/customer'
 
 type CheckoutItemInput = {
   product?: { id?: string }
@@ -51,6 +52,7 @@ export async function POST(req: NextRequest) {
     const addressCity = sanitizeText(order?.address_city)
     const addressState = sanitizeText(order?.address_state).toUpperCase()
     const shippingService = sanitizeText(order?.shipping_service)
+    const customerSession = await getCustomerSessionFromRequest(req)
 
     if (!customerName || !customerEmail || !customerPhone || customerCpf.length !== 11) {
       return NextResponse.json({ error: 'Dados do cliente inválidos.' }, { status: 400 })
@@ -70,6 +72,26 @@ export async function POST(req: NextRequest) {
 
     if (!['pix', 'credit_card', 'debit_card'].includes(paymentMethod)) {
       return NextResponse.json({ error: 'Método de pagamento inválido.' }, { status: 400 })
+    }
+
+    let customerId: string | null = null
+    if (customerSession) {
+      if (customerSession.email !== customerEmail) {
+        return NextResponse.json(
+          { error: 'Use o mesmo e-mail da sua conta para concluir o pedido.' },
+          { status: 400 }
+        )
+      }
+
+      customerId = customerSession.customerId
+      await supabaseAdmin
+        .from('customers')
+        .update({
+          name: customerName,
+          phone: customerPhone || null,
+          cpf: customerCpf || null,
+        })
+        .eq('id', customerId)
     }
 
     const productIds = Array.from(new Set(normalizedItems.map((item) => item.productId)))
@@ -135,6 +157,7 @@ export async function POST(req: NextRequest) {
 
     // 1. Cria o pedido no banco (status pending)
     const newOrder = await db.orders.create({
+      customer_id:          customerId,
       customer_name:        customerName,
       customer_email:       customerEmail,
       customer_phone:       customerPhone,
@@ -154,6 +177,33 @@ export async function POST(req: NextRequest) {
       payment_status: 'pending',
       status: 'pending',
     })
+
+    if (customerId) {
+      // Preenche automaticamente um endereço padrão para facilitar compras futuras.
+      const { data: existingDefault } = await supabaseAdmin
+        .from('customer_addresses')
+        .select('id')
+        .eq('customer_id', customerId)
+        .eq('is_default', true)
+        .maybeSingle()
+
+      if (!existingDefault?.id) {
+        await supabaseAdmin.from('customer_addresses').insert({
+          customer_id: customerId,
+          label: 'Principal',
+          recipient_name: customerName,
+          phone: customerPhone || null,
+          zip: addressZip,
+          street: addressStreet,
+          number: addressNumber,
+          complement: addressComplement || null,
+          neighborhood: addressNeighborhood,
+          city: addressCity,
+          state: addressState,
+          is_default: true,
+        })
+      }
+    }
 
     // 2. Salva os itens do pedido
     const items = trustedItems.map((item) => ({

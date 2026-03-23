@@ -41,6 +41,7 @@ Abra `.env.local` e preencha:
 | `MELHOR_ENVIO_ACCESS_TOKEN` | melhorenvio.com.br (token da API) |
 | `MELHOR_ENVIO_FROM_POSTAL_CODE` | CEP de origem da loja |
 | `ADMIN_SECRET_KEY` | Crie uma senha forte qualquer |
+| `CUSTOMER_AUTH_SECRET` | Chave para sessão da área do cliente |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics 4 (opcional) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel (opcional) |
 | `TRACKING_SYNC_SECRET` | Token para cron de rastreio (opcional) |
@@ -51,7 +52,8 @@ Abra `.env.local` e preencha:
 2. Vá em **SQL Editor → New Query**
 3. Cole o conteúdo de `supabase/schema.sql` e execute
 4. Em seguida, execute também `supabase/analytics.sql` (painel de funil/conversão)
-5. Se o projeto já existia antes, execute `supabase/security_patch.sql` para remover acesso público direto a pedidos
+5. Execute `supabase/customer_accounts.sql` para ativar a área de cliente (login, endereços, pagamentos)
+6. Se o projeto já existia antes, execute `supabase/security_patch.sql` para remover acesso público direto a pedidos
 
 ### 4. Configure o Storage
 
@@ -90,6 +92,7 @@ npm run dev
 # Admin: http://localhost:3000/admin (senha no .env.local)
 # Marketing: http://localhost:3000/admin/marketing
 # Rastreio: http://localhost:3000/pedidos
+# Conta do cliente: http://localhost:3000/conta
 ```
 
 ### ✅ Checklist de validação (pronto para uso)

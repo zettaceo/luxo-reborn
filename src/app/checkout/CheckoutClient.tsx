@@ -35,6 +35,17 @@ interface Props {
   checkoutEnabled: boolean
 }
 
+type SavedAccountAddress = {
+  is_default: boolean
+  zip?: string
+  street?: string
+  number?: string
+  complement?: string | null
+  neighborhood?: string
+  city?: string
+  state?: string
+}
+
 export default function CheckoutClient({ checkoutEnabled }: Props) {
   const router = useRouter()
   const { items, total, clearCart } = useCart()
@@ -88,6 +99,57 @@ export default function CheckoutClient({ checkoutEnabled }: Props) {
     checkoutTrackedRef.current = true
     trackBeginCheckout(items, cartTotal)
   }, [items, cartTotal, checkoutEnabled])
+
+  useEffect(() => {
+    if (!checkoutEnabled) return
+
+    let active = true
+    ;(async () => {
+      try {
+        const meRes = await fetch('/api/account/me')
+        if (!meRes.ok) return
+        const meJson = await meRes.json()
+        const me = meJson.data as {
+          name?: string
+          email?: string
+          phone?: string | null
+          cpf?: string | null
+        }
+
+        const addressesRes = await fetch('/api/account/addresses')
+        let defaultAddress: SavedAccountAddress | null = null
+        if (addressesRes.ok) {
+          const addressesJson = await addressesRes.json()
+          const list: SavedAccountAddress[] = Array.isArray(addressesJson.data)
+            ? (addressesJson.data as SavedAccountAddress[])
+            : []
+          defaultAddress = list.find((addr) => addr.is_default) ?? list[0] ?? null
+        }
+
+        if (!active) return
+        setForm((old) => ({
+          ...old,
+          name: old.name || (me.name ?? ''),
+          email: old.email || (me.email ?? ''),
+          phone: old.phone || (me.phone ? maskPhone(me.phone) : ''),
+          cpf: old.cpf || (me.cpf ? maskCpf(me.cpf) : ''),
+          zip: old.zip || (defaultAddress?.zip ? formatZip(defaultAddress.zip) : ''),
+          street: old.street || (defaultAddress?.street ?? ''),
+          number: old.number || (defaultAddress?.number ?? ''),
+          complement: old.complement || (defaultAddress?.complement ?? ''),
+          neighborhood: old.neighborhood || (defaultAddress?.neighborhood ?? ''),
+          city: old.city || (defaultAddress?.city ?? ''),
+          state: old.state || (defaultAddress?.state ?? ''),
+        }))
+      } catch {
+        // Conta do cliente é opcional no checkout.
+      }
+    })()
+
+    return () => {
+      active = false
+    }
+  }, [checkoutEnabled])
 
   // ── CEP auto-fill ──
   async function handleZipBlur() {
