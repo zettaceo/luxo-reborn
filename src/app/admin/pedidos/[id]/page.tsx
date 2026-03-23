@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { supabaseAdmin } from '@/lib/db'
 import { formatCurrency, formatDateTime, ORDER_STATUS_LABELS, PAYMENT_STATUS_LABELS } from '@/lib/utils'
 import { WhatsAppIcon } from '@/components/icons/SocialIcons'
+import { getTrackingInfo } from '@/lib/shipping/tracking'
 import type { Metadata } from 'next'
 import OrderActions from './OrderActions'
 
@@ -61,6 +62,7 @@ interface Props {
 export default async function AdminOrderDetailPage({ params }: Props) {
   const order = await getOrder(params.id)
   if (!order) notFound()
+  const liveTracking = order.tracking_code ? await getTrackingInfo(order.tracking_code) : null
 
   const statusInfo = ORDER_STATUS_LABELS[order.status] ?? { label: order.status, color: 'text-muted bg-gray-50' }
 
@@ -124,6 +126,12 @@ export default async function AdminOrderDetailPage({ params }: Props) {
             <div>
               <p className="text-sm text-muted mb-0.5">Serviço: <strong className="text-charcoal">{order.shipping_service}</strong></p>
               <p className="text-sm text-muted mb-3">Código: <strong className="text-rose-deep font-mono">{order.tracking_code}</strong></p>
+              {liveTracking && (
+                <p className="text-xs text-muted mb-3">
+                  Status automático: <strong className="text-charcoal">{liveTracking.description}</strong>
+                  {liveTracking.updated_at ? ` · ${formatDateTime(liveTracking.updated_at)}` : ''}
+                </p>
+              )}
               <a
                 href={`https://rastreamento.correios.com.br/app/index.php?objetos=${order.tracking_code}`}
                 target="_blank"

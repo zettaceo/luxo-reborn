@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { supabaseAdmin } from '@/lib/db'
+import { getTrackingInfo } from '@/lib/shipping/tracking'
 
 interface LookupBody {
   email?: string
@@ -46,7 +47,21 @@ export async function POST(req: NextRequest) {
     const { data, error } = await query
     if (error) throw error
 
-    return NextResponse.json({ data: data ?? [] })
+    const enriched = await Promise.all(
+      (data ?? []).map(async (order) => {
+        if (!order.tracking_code) return order
+        const tracking = await getTrackingInfo(order.tracking_code)
+        if (!tracking) return order
+        return {
+          ...order,
+          tracking_status: tracking.description,
+          tracking_updated_at: tracking.updated_at ?? null,
+          tracking_delivered: tracking.delivered,
+        }
+      })
+    )
+
+    return NextResponse.json({ data: enriched })
   } catch {
     return NextResponse.json({ error: 'Não foi possível consultar os pedidos.' }, { status: 500 })
   }

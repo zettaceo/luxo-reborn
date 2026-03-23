@@ -31,6 +31,7 @@ export default function OrderActions({ order }: { order: Order }) {
   const [trackingCode,    setTrackingCode]    = useState(order.tracking_code ?? '')
   const [shippingService, setShippingService] = useState(order.shipping_service ?? 'PAC')
   const [saving,          setSaving]          = useState(false)
+  const [syncing,         setSyncing]         = useState(false)
 
   async function handleSave() {
     setSaving(true)
@@ -55,6 +56,27 @@ export default function OrderActions({ order }: { order: Order }) {
       ? `Olá ${order.customer_name}! 🎀 Seu pedido ${order.order_number} foi enviado pelo ${shippingService}! Rastreie pelo código: *${trackingCode}* 📦`
       : `Olá ${order.customer_name}! 🎀 Seu pedido ${order.order_number} está sendo preparado com carinho!`
     window.open(`https://wa.me/55${order.customer_phone?.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank')
+  }
+
+  async function handleTrackingSync() {
+    if (!trackingCode) {
+      toast.error('Informe o código de rastreio antes de sincronizar.')
+      return
+    }
+
+    setSyncing(true)
+    try {
+      const res = await fetch(`/api/admin/orders/${order.id}/tracking-sync`, { method: 'POST' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Erro ao sincronizar rastreio')
+
+      toast.success('Rastreio sincronizado com sucesso!')
+      router.refresh()
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Erro ao sincronizar rastreio')
+    } finally {
+      setSyncing(false)
+    }
   }
 
   return (
@@ -92,6 +114,9 @@ export default function OrderActions({ order }: { order: Order }) {
       <div className="flex gap-3 flex-wrap">
         <button onClick={handleSave} disabled={saving} className="btn-primary">
           {saving ? '⏳ Salvando...' : '💾 Salvar'}
+        </button>
+        <button onClick={handleTrackingSync} disabled={syncing} className="btn-outline text-sm">
+          {syncing ? '⏳ Sincronizando...' : '🔄 Atualizar rastreio automático'}
         </button>
         <button onClick={handleWhatsAppNotify} className="btn-secondary text-sm inline-flex items-center gap-2">
           <WhatsAppIcon className="w-4 h-4" />

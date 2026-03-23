@@ -23,6 +23,9 @@ interface LookupOrder {
   created_at: string
   address_city: string
   address_state: string
+  tracking_status?: string | null
+  tracking_updated_at?: string | null
+  tracking_delivered?: boolean
   items?: LookupItem[]
 }
 
@@ -155,6 +158,12 @@ export default function OrderLookupClient() {
                   {order.tracking_code ? (
                     <div className="text-sm text-charcoal">
                       <span className="text-muted">Rastreio:</span> <strong className="font-mono">{order.tracking_code}</strong>
+                      {order.tracking_status && (
+                        <p className="text-xs text-muted mt-1">
+                          Status automático: {order.tracking_status}
+                          {order.tracking_updated_at ? ` · ${formatDateTime(order.tracking_updated_at)}` : ''}
+                        </p>
+                      )}
                     </div>
                   ) : (
                     <div className="text-sm text-muted">Código de rastreio ainda não disponível.</div>

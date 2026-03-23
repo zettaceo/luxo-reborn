@@ -130,14 +130,21 @@ export default function CheckoutClient({ checkoutEnabled }: Props) {
     if (!validateAddress()) { toast.error('Corrija os campos destacados'); return }
     setLoading(true)
     try {
-      // Simula cálculo de frete (integrar Melhor Envio aqui)
-      await new Promise(r => setTimeout(r, 800))
-      setShippingOptions([
-        { service: 'PAC',   name: 'PAC — Correios',    price: 18.50, estimated_days: 7 },
-        { service: 'SEDEX', name: 'SEDEX — Correios',  price: 32.00, estimated_days: 3 },
-        { service: 'MINI',  name: 'Mini Envios',       price: 14.90, estimated_days: 10 },
-      ])
+      const res = await fetch('/api/shipping/quote', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination_zip: form.zip.replace(/\D/g, ''),
+          items: items.map((item) => ({ product_id: item.product.id, quantity: item.quantity })),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error ?? 'Não foi possível calcular frete.')
+      setShippingOptions(data.data ?? [])
+      setSelectedShipping(null)
       setStep('shipping')
+    } catch (error: unknown) {
+      toast.error(error instanceof Error ? error.message : 'Não foi possível calcular frete.')
     } finally {
       setLoading(false)
     }

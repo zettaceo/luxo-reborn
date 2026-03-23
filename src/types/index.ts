@@ -150,6 +150,7 @@ export interface ShippingOption {
   name: string
   price: number
   estimated_days: number
+  provider?: string
 }
 
 // ── API RESPONSES ────────────────────────────

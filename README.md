@@ -38,9 +38,12 @@ Abra `.env.local` e preencha:
 | `SUPABASE_SERVICE_ROLE_KEY` | supabase.com → Settings → API |
 | `MERCADOPAGO_ACCESS_TOKEN` | mercadopago.com.br/developers |
 | `NEXT_PUBLIC_MERCADOPAGO_PUBLIC_KEY` | mercadopago.com.br/developers |
+| `MELHOR_ENVIO_ACCESS_TOKEN` | melhorenvio.com.br (token da API) |
+| `MELHOR_ENVIO_FROM_POSTAL_CODE` | CEP de origem da loja |
 | `ADMIN_SECRET_KEY` | Crie uma senha forte qualquer |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics 4 (opcional) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel (opcional) |
+| `TRACKING_SYNC_SECRET` | Token para cron de rastreio (opcional) |
 
 ### 3. Configure o banco de dados
 
@@ -67,6 +70,18 @@ npm run dev
 4. Configure o Webhook URL: `https://SEU_DOMINIO/api/webhooks/mercadopago`
 5. Defina `MERCADOPAGO_WEBHOOK_SECRET` (obrigatório em produção)
 
+### 5.1 Configure frete real (Melhor Envio)
+
+1. Crie token da API no Melhor Envio
+2. Defina no `.env`:
+   - `MELHOR_ENVIO_ACCESS_TOKEN`
+   - `MELHOR_ENVIO_FROM_POSTAL_CODE`
+3. (Opcional) Ajuste:
+   - `MELHOR_ENVIO_SERVICES`
+   - dimensões padrão `MELHOR_ENVIO_DEFAULT_*`
+
+Sem essas variáveis, o sistema usa fallback interno de frete para não quebrar o checkout.
+
 ### 6. Rode localmente
 
 ```bash
@@ -87,6 +102,15 @@ npm run dev
    - `begin_checkout`
 4. Faça um pedido de teste e valide `purchase`.
 5. Abra `/pedidos` e consulte com e-mail da compra.
+6. No admin de pedido, use o botão **Atualizar rastreio automático** para buscar status dos Correios.
+
+### 🔄 Rastreio automático por cron (opcional)
+
+Existe endpoint para sincronizar pedidos enviados:
+- `POST /api/cron/tracking-sync`
+- Header obrigatório: `Authorization: Bearer <TRACKING_SYNC_SECRET>`
+
+Ele marca pedidos como entregues automaticamente quando o rastreio indicar entrega.
 
 ---
 

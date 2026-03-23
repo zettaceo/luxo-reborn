@@ -2,23 +2,11 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createPixPayment, createCardPayment } from '@/lib/mercadopago'
 import { db } from '@/lib/db'
 import { supabaseAdmin } from '@/lib/db'
+import { calculateShippingQuotes } from '@/lib/shipping/quote'
 
 type CheckoutItemInput = {
   product?: { id?: string }
   quantity?: number
-}
-
-const SHIPPING_PRICES: Record<string, number> = {
-  PAC: 18.5,
-  SEDEX: 32,
-  MINI: 14.9,
-}
-
-function parseShippingCost(service: string) {
-  const normalized = service.trim().toUpperCase()
-  const price = SHIPPING_PRICES[normalized]
-  if (price === undefined) return null
-  return { service: normalized, price }
 }
 
 function normalizeItems(items: unknown): Array<{ productId: string; quantity: number }> {
@@ -72,11 +60,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Dados de entrega inválidos.' }, { status: 400 })
     }
 
-    const shipping = parseShippingCost(shippingService)
-    if (!shipping) {
-      return NextResponse.json({ error: 'Frete inválido.' }, { status: 400 })
-    }
-
     const normalizedItems = normalizeItems(order?.items)
     if (normalizedItems.length === 0) {
       return NextResponse.json({ error: 'Carrinho inválido.' }, { status: 400 })
@@ -92,7 +75,7 @@ export async function POST(req: NextRequest) {
     const productIds = Array.from(new Set(normalizedItems.map((item) => item.productId)))
     const { data: products, error: productsError } = await supabaseAdmin
       .from('products')
-      .select('id, name, price, stock, is_active, images:product_images(url, is_cover, position)')
+      .select('id, name, price, stock, is_active, weight_grams, images:product_images(url, is_cover, position)')
       .in('id', productIds)
 
     if (productsError) throw productsError
@@ -120,11 +103,30 @@ export async function POST(req: NextRequest) {
         quantity: item.quantity,
         total_price: unitPrice * item.quantity,
         product_image: coverImage,
+        weight_grams: Number(product.weight_grams ?? 500),
       }
     })
 
+    const shippingQuotes = await calculateShippingQuotes({
+      destinationZip: addressZip,
+      items: trustedItems.map((item) => ({
+        id: item.product_id,
+        name: item.product_name,
+        quantity: item.quantity,
+        weight_grams: item.weight_grams,
+        price: item.unit_price,
+      })),
+    })
+
+    const selectedShipping = shippingQuotes.find(
+      (option) => option.service === shippingService || option.name === shippingService
+    )
+    if (!selectedShipping) {
+      return NextResponse.json({ error: 'Frete inválido ou expirado. Recalcule o frete.' }, { status: 400 })
+    }
+
     const subtotal = trustedItems.reduce((sum, item) => sum + item.total_price, 0)
-    const total = subtotal + shipping.price
+    const total = subtotal + selectedShipping.price
 
     const cardToken = sanitizeText(card_token)
     if ((paymentMethod === 'credit_card' || paymentMethod === 'debit_card') && !cardToken) {
@@ -145,8 +147,8 @@ export async function POST(req: NextRequest) {
       address_city:         addressCity,
       address_state:        addressState,
       subtotal,
-      shipping_cost:        shipping.price,
-      shipping_service:     shipping.service,
+      shipping_cost:        selectedShipping.price,
+      shipping_service:     selectedShipping.name,
       total,
       payment_method: paymentMethod,
       payment_status: 'pending',
