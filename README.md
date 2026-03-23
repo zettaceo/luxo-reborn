@@ -42,6 +42,8 @@ Abra `.env.local` e preencha:
 | `MELHOR_ENVIO_FROM_POSTAL_CODE` | CEP de origem da loja |
 | `ADMIN_SECRET_KEY` | Crie uma senha forte qualquer |
 | `CUSTOMER_AUTH_SECRET` | Chave para sessão da área do cliente |
+| `RESEND_API_KEY` | Chave da API de e-mail (resend.com) para recuperação de senha |
+| `RESEND_FROM_EMAIL` | Remetente validado no Resend (ex: no-reply@dominio.com) |
 | `NEXT_PUBLIC_GA_MEASUREMENT_ID` | Google Analytics 4 (opcional) |
 | `NEXT_PUBLIC_META_PIXEL_ID` | Meta Pixel (opcional) |
 | `TRACKING_SYNC_SECRET` | Token para cron de rastreio (opcional) |
@@ -53,7 +55,8 @@ Abra `.env.local` e preencha:
 3. Cole o conteúdo de `supabase/schema.sql` e execute
 4. Em seguida, execute também `supabase/analytics.sql` (painel de funil/conversão)
 5. Execute `supabase/customer_accounts.sql` para ativar a área de cliente (login, endereços, pagamentos)
-6. Se o projeto já existia antes, execute `supabase/security_patch.sql` para remover acesso público direto a pedidos
+6. Se você já tinha executado `customer_accounts.sql` antes desta atualização, rode `supabase/password_recovery_patch.sql`
+7. Se o projeto já existia antes, execute `supabase/security_patch.sql` para remover acesso público direto a pedidos
 
 ### 4. Configure o Storage
 
@@ -93,6 +96,7 @@ npm run dev
 # Marketing: http://localhost:3000/admin/marketing
 # Rastreio: http://localhost:3000/pedidos
 # Conta do cliente: http://localhost:3000/conta
+# Recuperar senha: http://localhost:3000/conta/esqueci-senha
 ```
 
 ### ✅ Checklist de validação (pronto para uso)

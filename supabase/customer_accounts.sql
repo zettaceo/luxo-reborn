@@ -8,6 +8,9 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 1) Novas colunas em customers
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS password_hash TEXT;
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS last_login_at TIMESTAMPTZ;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS reset_password_token_hash TEXT;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS reset_password_expires_at TIMESTAMPTZ;
+ALTER TABLE customers ADD COLUMN IF NOT EXISTS reset_password_requested_at TIMESTAMPTZ;
 ALTER TABLE customers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT NOW();
 
 -- 2) Tabela de endereços do cliente
@@ -80,6 +83,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_addresses_default
 CREATE INDEX IF NOT EXISTS idx_customer_payment_methods_customer ON customer_payment_methods(customer_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_payment_methods_default
   ON customer_payment_methods(customer_id) WHERE is_default = TRUE;
+CREATE INDEX IF NOT EXISTS idx_customers_reset_token ON customers(reset_password_token_hash);
 
 -- 6) RLS
 ALTER TABLE customer_addresses ENABLE ROW LEVEL SECURITY;
