@@ -60,7 +60,44 @@ CREATE TABLE IF NOT EXISTS customers (
   name        TEXT NOT NULL,
   phone       TEXT,
   cpf         TEXT,
-  created_at  TIMESTAMPTZ DEFAULT NOW()
+  password_hash TEXT,
+  last_login_at TIMESTAMPTZ,
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── ENDEREÇOS DO CLIENTE ─────────────────────────────────
+CREATE TABLE IF NOT EXISTS customer_addresses (
+  id             UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  customer_id    UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  label          TEXT NOT NULL DEFAULT 'Endereço',
+  recipient_name TEXT NOT NULL,
+  phone          TEXT,
+  zip            TEXT NOT NULL,
+  street         TEXT NOT NULL,
+  number         TEXT NOT NULL,
+  complement     TEXT,
+  neighborhood   TEXT NOT NULL,
+  city           TEXT NOT NULL,
+  state          TEXT NOT NULL,
+  is_default     BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at     TIMESTAMPTZ DEFAULT NOW(),
+  updated_at     TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ── PAGAMENTOS SALVOS (REFERÊNCIAS SEGURAS) ──────────────
+CREATE TABLE IF NOT EXISTS customer_payment_methods (
+  id              UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  customer_id     UUID NOT NULL REFERENCES customers(id) ON DELETE CASCADE,
+  type            TEXT NOT NULL CHECK (type IN ('pix','credit_card','debit_card','boleto','wallet')),
+  label           TEXT NOT NULL,
+  holder_name     TEXT,
+  brand           TEXT,
+  last4           TEXT,
+  token_reference TEXT,
+  is_default      BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at      TIMESTAMPTZ DEFAULT NOW(),
+  updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- ── PEDIDOS ───────────────────────────────────────────
@@ -158,6 +195,12 @@ CREATE TRIGGER products_updated_at BEFORE UPDATE ON products
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 CREATE TRIGGER orders_updated_at BEFORE UPDATE ON orders
   FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER customers_updated_at BEFORE UPDATE ON customers
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER customer_addresses_updated_at BEFORE UPDATE ON customer_addresses
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+CREATE TRIGGER customer_payment_methods_updated_at BEFORE UPDATE ON customer_payment_methods
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
 -- ── ÍNDICES PARA PERFORMANCE ──────────────────────────
 CREATE INDEX IF NOT EXISTS idx_products_category   ON products(category_id);
@@ -167,9 +210,16 @@ CREATE INDEX IF NOT EXISTS idx_products_slug        ON products(slug);
 CREATE INDEX IF NOT EXISTS idx_orders_status        ON orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_payment       ON orders(payment_status);
 CREATE INDEX IF NOT EXISTS idx_orders_email         ON orders(customer_email);
+CREATE INDEX IF NOT EXISTS idx_orders_customer      ON orders(customer_id);
 CREATE INDEX IF NOT EXISTS idx_order_items_order    ON order_items(order_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_product      ON reviews(product_id);
 CREATE INDEX IF NOT EXISTS idx_reviews_approved     ON reviews(is_approved);
+CREATE INDEX IF NOT EXISTS idx_customer_addresses_customer ON customer_addresses(customer_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_addresses_default
+  ON customer_addresses(customer_id) WHERE is_default = TRUE;
+CREATE INDEX IF NOT EXISTS idx_customer_payment_methods_customer ON customer_payment_methods(customer_id);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_payment_methods_default
+  ON customer_payment_methods(customer_id) WHERE is_default = TRUE;
 
 -- ── ROW LEVEL SECURITY (RLS) ──────────────────────────
 ALTER TABLE products       ENABLE ROW LEVEL SECURITY;
@@ -179,6 +229,8 @@ ALTER TABLE orders         ENABLE ROW LEVEL SECURITY;
 ALTER TABLE order_items    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE reviews        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customers      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_addresses ENABLE ROW LEVEL SECURITY;
+ALTER TABLE customer_payment_methods ENABLE ROW LEVEL SECURITY;
 
 -- Leitura pública (anon): produtos ativos e categorias
 CREATE POLICY "Produtos ativos visíveis publicamente"
@@ -198,8 +250,12 @@ DROP POLICY IF EXISTS "Clientes podem ver seus pedidos" ON orders;
 
 CREATE POLICY "Clientes podem criar avaliações"
   ON reviews FOR INSERT WITH CHECK (TRUE);
-CREATE POLICY "Clientes podem criar conta"
-  ON customers FOR INSERT WITH CHECK (TRUE);
+CREATE POLICY "Customers service role only"
+  ON customers FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "Customer addresses service role only"
+  ON customer_addresses FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
+CREATE POLICY "Customer payment methods service role only"
+  ON customer_payment_methods FOR ALL TO service_role USING (TRUE) WITH CHECK (TRUE);
 
 -- Admin (service_role bypassa RLS automaticamente)
 -- Todas as operações de admin usam SUPABASE_SERVICE_ROLE_KEY

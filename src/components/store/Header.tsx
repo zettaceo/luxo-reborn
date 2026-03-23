@@ -55,13 +55,15 @@ export default function Header() {
             🔍
           </Link>
 
-          {/* Favoritos */}
-          <button
+          {/* Minha conta */}
+          <Link
+            href="/conta"
             className="w-10 h-10 rounded-full bg-rose-pale flex items-center justify-center text-lg hover:bg-rose-light transition-colors"
-            aria-label="Favoritos"
+            aria-label="Minha conta"
+            title="Minha conta"
           >
-            🤍
-          </button>
+            👤
+          </Link>
 
           {/* Carrinho */}
           <button

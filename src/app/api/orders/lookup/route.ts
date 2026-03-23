@@ -5,6 +5,7 @@ import { getTrackingInfo } from '@/lib/shipping/tracking'
 interface LookupBody {
   email?: string
   orderNumber?: string
+  cpfPartial?: string
 }
 
 export async function POST(req: NextRequest) {
@@ -12,12 +13,19 @@ export async function POST(req: NextRequest) {
     const body = (await req.json()) as LookupBody
     const email = (body.email ?? '').trim().toLowerCase()
     const orderNumber = (body.orderNumber ?? '').trim().toUpperCase()
+    const cpfPartial = (body.cpfPartial ?? '').replace(/\D/g, '')
 
     if (!email || !email.includes('@')) {
       return NextResponse.json({ error: 'Informe um e-mail válido.' }, { status: 400 })
     }
+    if (!orderNumber) {
+      return NextResponse.json({ error: 'Informe o número do pedido.' }, { status: 400 })
+    }
+    if (cpfPartial.length !== 4) {
+      return NextResponse.json({ error: 'Informe os 4 últimos dígitos do CPF.' }, { status: 400 })
+    }
 
-    let query = supabaseAdmin
+    const query = supabaseAdmin
       .from('orders')
       .select(`
         id,
@@ -31,6 +39,7 @@ export async function POST(req: NextRequest) {
         created_at,
         address_city,
         address_state,
+        customer_cpf,
         items:order_items(
           id,
           product_name,
@@ -39,21 +48,22 @@ export async function POST(req: NextRequest) {
         )
       `)
       .ilike('customer_email', email)
+      .eq('order_number', orderNumber)
+      .like('customer_cpf', `%${cpfPartial}`)
       .order('created_at', { ascending: false })
-      .limit(10)
-
-    if (orderNumber) query = query.eq('order_number', orderNumber)
+      .limit(1)
 
     const { data, error } = await query
     if (error) throw error
 
     const enriched = await Promise.all(
       (data ?? []).map(async (order) => {
-        if (!order.tracking_code) return order
-        const tracking = await getTrackingInfo(order.tracking_code)
-        if (!tracking) return order
+        const { customer_cpf: _ignoredCpf, ...safeOrder } = order
+        if (!safeOrder.tracking_code) return safeOrder
+        const tracking = await getTrackingInfo(safeOrder.tracking_code)
+        if (!tracking) return safeOrder
         return {
-          ...order,
+          ...safeOrder,
           tracking_status: tracking.description,
           tracking_updated_at: tracking.updated_at ?? null,
           tracking_delivered: tracking.delivered,

@@ -32,6 +32,7 @@ interface LookupOrder {
 export default function OrderLookupClient() {
   const [email, setEmail] = useState('')
   const [orderNumber, setOrderNumber] = useState('')
+  const [cpfPartial, setCpfPartial] = useState('')
   const [loading, setLoading] = useState(false)
   const [orders, setOrders] = useState<LookupOrder[]>([])
   const [searched, setSearched] = useState(false)
@@ -44,7 +45,7 @@ export default function OrderLookupClient() {
       const res = await fetch('/api/orders/lookup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, orderNumber }),
+        body: JSON.stringify({ email, orderNumber, cpfPartial }),
       })
 
       const data = await res.json()
@@ -64,7 +65,7 @@ export default function OrderLookupClient() {
       <div className="bg-white border border-rose-light rounded-3xl p-6 md:p-8 mb-6">
         <h1 className="font-display text-3xl font-bold text-charcoal mb-2">📦 Acompanhar pedido</h1>
         <p className="text-sm text-muted mb-6">
-          Consulte seus pedidos com seu e-mail. Se quiser, informe também o número do pedido (ex: #LR-00001).
+          Para proteger seus dados, informe e-mail da compra, número do pedido e os 4 últimos dígitos do CPF.
         </p>
 
         <form onSubmit={handleLookup} className="grid sm:grid-cols-2 gap-4">
@@ -80,14 +81,27 @@ export default function OrderLookupClient() {
             />
           </div>
 
-          <div className="sm:col-span-2">
-            <label className="label">Número do pedido (opcional)</label>
+          <div>
+            <label className="label">Número do pedido *</label>
             <input
               type="text"
               className="input"
               value={orderNumber}
               onChange={(e) => setOrderNumber(e.target.value.toUpperCase())}
               placeholder="#LR-00001"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="label">4 últimos dígitos do CPF *</label>
+            <input
+              type="text"
+              className="input"
+              value={cpfPartial}
+              onChange={(e) => setCpfPartial(e.target.value.replace(/\D/g, '').slice(0, 4))}
+              placeholder="0000"
+              required
             />
           </div>
 
