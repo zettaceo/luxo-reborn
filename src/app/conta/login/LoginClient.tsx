@@ -64,6 +64,11 @@ export default function LoginClient() {
             required
             minLength={8}
           />
+          <div className="mt-2 text-right">
+            <Link href="/conta/esqueci-senha" className="text-xs font-semibold text-rose-deep hover:underline">
+              Esqueci minha senha
+            </Link>
+          </div>
         </div>
 
         <button type="submit" disabled={loading} className="btn-primary w-full py-3.5">

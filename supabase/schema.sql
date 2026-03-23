@@ -62,6 +62,9 @@ CREATE TABLE IF NOT EXISTS customers (
   cpf         TEXT,
   password_hash TEXT,
   last_login_at TIMESTAMPTZ,
+  reset_password_token_hash TEXT,
+  reset_password_expires_at TIMESTAMPTZ,
+  reset_password_requested_at TIMESTAMPTZ,
   created_at  TIMESTAMPTZ DEFAULT NOW(),
   updated_at  TIMESTAMPTZ DEFAULT NOW()
 );
@@ -220,6 +223,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_addresses_default
 CREATE INDEX IF NOT EXISTS idx_customer_payment_methods_customer ON customer_payment_methods(customer_id);
 CREATE UNIQUE INDEX IF NOT EXISTS uq_customer_payment_methods_default
   ON customer_payment_methods(customer_id) WHERE is_default = TRUE;
+CREATE INDEX IF NOT EXISTS idx_customers_reset_token
+  ON customers(reset_password_token_hash);
 
 -- ── ROW LEVEL SECURITY (RLS) ──────────────────────────
 ALTER TABLE products       ENABLE ROW LEVEL SECURITY;

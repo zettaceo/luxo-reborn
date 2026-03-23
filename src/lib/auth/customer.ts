@@ -6,6 +6,7 @@ const scrypt = promisify(nodeScrypt)
 
 export const CUSTOMER_AUTH_COOKIE = 'customer_token'
 const CUSTOMER_SESSION_MAX_AGE = 60 * 60 * 24 * 30 // 30 dias
+const PASSWORD_RESET_TOKEN_TTL_SECONDS = 60 * 30 // 30 minutos
 
 type CustomerTokenPayload = {
   customerId: string
@@ -48,6 +49,10 @@ export async function verifyCustomerPassword(password: string, storedHash: strin
 
 function signToken(payloadBase64: string) {
   return createHmac('sha256', getCustomerAuthSecret()).update(payloadBase64).digest('base64url')
+}
+
+function getResetTokenSecret() {
+  return `${getCustomerAuthSecret()}:password-reset`
 }
 
 export function createCustomerSessionToken(session: CustomerSession) {
@@ -97,4 +102,17 @@ export function clearCustomerSessionCookie(res: NextResponse) {
 export async function getCustomerSessionFromRequest(req: NextRequest) {
   const token = req.cookies.get(CUSTOMER_AUTH_COOKIE)?.value
   return verifyCustomerSessionToken(token)
+}
+
+export function hashPasswordResetToken(token: string) {
+  return createHmac('sha256', getResetTokenSecret()).update(token).digest('hex')
+}
+
+export function createPasswordResetToken() {
+  const token = randomBytes(32).toString('base64url')
+  return {
+    token,
+    tokenHash: hashPasswordResetToken(token),
+    expiresAtIso: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_SECONDS * 1000).toISOString(),
+  }
 }
